@@ -33,17 +33,17 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 }
 #endif
 
-function_entry smbclientmod_functions[] =
+function_entry libsmbclient_functions[] =
 {
 	PHP_FE(smbclient_test, NULL)
 	{NULL, NULL, NULL}
 };
 
-zend_module_entry smbclientmod_module_entry =
+zend_module_entry libsmbclient_module_entry =
 {
 	STANDARD_MODULE_HEADER,
 	"libsmbclient",
-	smbclientmod_functions,
+	libsmbclient_functions,
 	PHP_MINIT(smbclient),
 	PHP_MSHUTDOWN(smbclient),
 	PHP_RINIT(smbclient),
@@ -53,11 +53,8 @@ zend_module_entry smbclientmod_module_entry =
 	STANDARD_MODULE_PROPERTIES
 };
 
-ZEND_DECLARE_MODULE_GLOBALS(smbclient)
-
-/* implement standard "stub" routine to introduce ourselves to Zend */
-#if COMPILE_DL_SMBCLIENT_MODULE
-ZEND_GET_MODULE(smbclientmod)
+#if COMPILE_DL_LIBSMBCLIENT
+ZEND_GET_MODULE(libsmbclient)
 #endif
 
 
@@ -76,10 +73,11 @@ PHP_MINIT_FUNCTION(smbclient) {
 	if(retval == 0) {
 		return SUCCESS;
 	} else {
-		switch(retval) {
+		switch(errno) {
 			case ENOMEM: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize libsmbclient: Out of memory."); break;
-			case ENOENT: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize libsmbclient: The smb.conf file would not load."); break;
-			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize libsmbclient: Unknown error."); break;
+			case ENOENT: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize libsmbclient: The smb.conf file would not load.  It must be located in ~/.smb/ (probably /root/.smb) ."); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize libsmbclient: Invalid parameter."); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize libsmbclient: Unknown error (%d).", errno); break;
 		}
 
 		return FAILURE;
