@@ -21,6 +21,21 @@
 #include "php.h"
 #include "php_libsmbclient.h"
 
+#ifdef ZTS
+static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient_globals_p TSRMLS_DC)
+{
+}
+#endif
+
+
+#ifdef ZTS
+int libsmbclient_globals_id;
+ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
+#else
+#define php_libsmbclient_globals libsmbclient_globals;
+#endif
+
+
 function_entry smbclientmod_functions[] =
 {
 	PHP_FE(smbclient_test, NULL)

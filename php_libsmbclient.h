@@ -26,18 +26,24 @@
 extern zend_module_entry php_libsmbclient_module_entry;
 #define libsmbclient_module_ptr &php_libsmbclient_module_entry
 
-ZEND_BEGIN_MODULE_GLOBALS(smbclient)
+typedef struct {
 	zval **dest_server;
 	zval **dest_share;
 	zval **dest_workgroup;
 	zval **src_username;
 	zval **src_password;
-ZEND_END_MODULE_GLOBALS(smbclient)
+} php_libsmbclient_globals;
 
 PHP_MINIT_FUNCTION(smbclient);
 PHP_MSHUTDOWN_FUNCTION(smbclient);
 PHP_RINIT_FUNCTION(smbclient);
 PHP_MINFO_FUNCTION(smbclient);
 PHP_FUNCTION(smbclient_test);
+
+#ifdef ZTS
+#define LIBSMBCLIENT(v) TSRMG(libsmbclient_globals_id, php_libsmbclient_globals *, v)
+#else
+#define LIBSMBCLIENT(v) (libsmbclient_globals.v)
+#endif
 
 #endif /* _SMBCLIENT_MODULE_H */
