@@ -30,7 +30,7 @@ if test "$PHP_LIBSMBCLIENT" != "no" -o "$PHP_LIBSMBCLIENT_DIR" != "no"; then
     AC_MSG_ERROR(Cannot find libsmbclient)
   fi
 
-  PHP_CHECK_LIBRARY(smbclient, smbc_new_context, [
+  PHP_CHECK_LIBRARY(smbclient, smbc_init, [
     AC_DEFINE(HAVE_LIBSMBCLIENT,1,[ ]) 
   ],[
     AC_MSG_ERROR(libsmbclient extension requires libsmbclient)
