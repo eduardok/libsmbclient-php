@@ -9,7 +9,7 @@ PHP_ARG_WITH(libsmbclient-dir,if the location of libsmbclient install directory 
 [  --with-libsmbclient-dir=<DIR>   Define the location of the libsmbclient install directory], no, no)
 
 if test "$PHP_LIBSMBCLIENT" != "no" -o "$PHP_LIBSMBCLIENT_DIR" != "no"; then
-  PHP_NEW_EXTENSION(libsmbclient, libsmbclient.c, $ext_shared)
+  PHP_NEW_EXTENSION(libsmbclient, smbclient_module.c, $ext_shared)
   PHP_SUBST(LIBSMBCLIENT_SHARED_LIBADD)
   
   if test "$PHP_LIBSMBCLIENT" != "yes" -a "$PHP_LIBSMBCLIENT" != "no"; then 
