@@ -8,6 +8,14 @@
 ?>
 
 <h1>libsmbclient PHP test</h1>
+<p>
+<tt>
+We accept smb://[[[domain;]user[:password@]]server[/share[/path[/file]]]]<br>
+<br>
+smb:// &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;means show all the workgroups<br>
+smb://name/ &nbsp;means, if name&lt;1D&gt; exists, list servers in workgroup,
+              else, if name&lt;20&gt; exists, list all shares for server ...
+</p>
 <form method="post" action="libsmbclient.php">
 URL: <input name="url" type="text" value="<?echo htmlentities($url)?>" size="100"><br>
 <input type="submit" name="submit" value="Browse">
