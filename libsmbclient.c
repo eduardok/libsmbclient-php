@@ -35,7 +35,9 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 
 function_entry libsmbclient_functions[] =
 {
-	PHP_FE(smbclient_test, NULL)
+	PHP_FE(smbclient_opendir, NULL)
+	PHP_FE(smbclient_readdir, NULL)
+	PHP_FE(smbclient_closedir, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -93,16 +95,108 @@ PHP_MINFO_FUNCTION(smbclient) {
 	php_info_print_table_end();
 }
 
-PHP_FUNCTION(smbclient_test)
+PHP_FUNCTION(smbclient_opendir)
 {
-	zval **parameter;
+	zval **path;
+	int dirhandle;
 
-	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &parameter) != SUCCESS))
+	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &path) != SUCCESS))
 	{
 		WRONG_PARAM_COUNT;
 	}
 
-	convert_to_long_ex(parameter);
+	convert_to_string_ex(path);
+	dirhandle = smbc_opendir(Z_STRVAL_PP(path));
+	if(dirhandle < 0) {
+		switch(errno) {
+			case EACCES: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Permission denied", Z_STRVAL_PP(path)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Invalid URL", Z_STRVAL_PP(path)); break;
+			case ENOENT: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Path does not exist", Z_STRVAL_PP(path)); break;
+			case ENOMEM: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Insufficient memory", Z_STRVAL_PP(path)); break;
+			case ENOTDIR: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Not a directory", Z_STRVAL_PP(path)); break;
+			case EPERM: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Workgroup not found", Z_STRVAL_PP(path)); break;
+			case ENODEV: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Workgroup or server not found", Z_STRVAL_PP(path)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open SMB directory %s: Unknown error (%d)", Z_STRVAL_PP(path), errno); break;
+		}
 
-	RETURN_LONG((*parameter)->value.lval);
+		RETURN_FALSE;
+	}
+
+	RETURN_LONG(dirhandle);
 }
+
+PHP_FUNCTION(smbclient_closedir)
+{
+	zval **dirhandle;
+	int retval;
+
+	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &dirhandle) != SUCCESS))
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	
+	convert_to_long_ex(dirhandle);
+	retval = smbc_closedir(Z_LVAL_PP(dirhandle));
+	if(retval < 0) {
+		switch(errno) {
+			case EBADF: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't close SMB directory handle %d: Not a directory handle", Z_LVAL_PP(dirhandle)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't close SMB directory handle %d: Unknown error (%d)", Z_LVAL_PP(dirhandle), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	RETURN_TRUE;
+}
+
+
+PHP_FUNCTION(smbclient_readdir)
+{
+	zval **dirhandle;
+	struct smbc_dirent *dirent;
+	char *type;
+
+	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &dirhandle) != SUCCESS))
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	
+	convert_to_long_ex(dirhandle);
+	errno = 0;
+	dirent = smbc_readdir(Z_LVAL_PP(dirhandle));
+	if(dirent == NULL) {
+		switch(errno) {
+			case 0: RETURN_FALSE;
+			case EBADF: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read SMB directory handle %d: Not a directory handle", Z_LVAL_PP(dirhandle)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read SMB directory handle %d: smbc_init not called", Z_LVAL_PP(dirhandle)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read SMB directory handle %d: Unknown error (%d)", Z_LVAL_PP(dirhandle), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	if(array_init(return_value) != SUCCESS) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize array");
+		RETURN_FALSE;
+	}
+
+	switch(dirent->smbc_type) {
+		case SMBC_WORKGROUP: type = "workgroup"; break;
+		case SMBC_SERVER: type = "server"; break;
+		case SMBC_FILE_SHARE: type = "file share"; break;
+		case SMBC_PRINTER_SHARE: type = "printer share"; break;
+		case SMBC_COMMS_SHARE: type = "communication share"; break;
+		case SMBC_IPC_SHARE: type = "IPC share"; break;
+		case SMBC_DIR: type = "directory"; break;
+		case SMBC_FILE: type = "file"; break;
+		case SMBC_LINK: type = "link"; break;
+		default: type = "unknown"; break;
+	}
+	add_assoc_string(return_value, "type", type, 1);
+
+	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen, 1);
+	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
+}
+
