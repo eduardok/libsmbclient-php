@@ -39,6 +39,10 @@ function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_readdir, NULL)
 	PHP_FE(smbclient_closedir, NULL)
 	PHP_FE(smbclient_stat, NULL)
+	PHP_FE(smbclient_open, NULL)
+	PHP_FE(smbclient_creat, NULL)
+	PHP_FE(smbclient_read, NULL)
+	PHP_FE(smbclient_close, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -261,3 +265,135 @@ PHP_FUNCTION(smbclient_stat)
 	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
 
 }
+
+
+PHP_FUNCTION(smbclient_open)
+{
+	zval **file, **flags, **mode;
+	int retval;
+
+	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &file) != SUCCESS) /*|| (zend_get_parameters_ex(2, &flags)) || (zend_get_parameters_ex(3, &mode))*/)
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	convert_to_string_ex(file);
+	//convert_to_long_ex(flags);
+	//convert_to_long_ex(mode);
+
+	retval = smbc_open(Z_STRVAL_PP(file), 0, 0); //Z_LVAL_PP(flags), Z_LVAL_PP(mode));
+
+	if(retval < 0) {
+		switch(errno) {
+			case ENOMEM: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Out of memory", Z_STRVAL_PP(file)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: No file?", Z_STRVAL_PP(file)); break;
+			case EEXIST: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Pathname already exists and O_CREAT and O_EXECL were specified", Z_STRVAL_PP(file)); break;
+			case EISDIR: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Can't write to a directory", Z_STRVAL_PP(file)); break;
+			case EACCES: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Access denied", Z_STRVAL_PP(file)); break;
+			case ENODEV: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Requested share does not exist", Z_STRVAL_PP(file)); break;
+			case ENOTDIR: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Path component isn't a directory", Z_STRVAL_PP(file)); break;
+			case ENOENT: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Directory in path doesn't exist", Z_STRVAL_PP(file)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't open %s: Unknown error (%d)", Z_STRVAL_PP(file), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	
+	RETURN_LONG(retval);
+}
+
+PHP_FUNCTION(smbclient_creat)
+{
+	zval **file, **mode;
+	int retval;
+
+	if((ZEND_NUM_ARGS() != 2) || (zend_get_parameters_ex(1, &file) != SUCCESS) || (zend_get_parameters_ex(2, &mode)))
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	convert_to_string_ex(file);
+	convert_to_long_ex(mode);
+
+	retval = smbc_creat(Z_STRVAL_PP(file), Z_LVAL_PP(mode));
+	if(retval < 0) {
+		switch(errno) {
+			case ENOMEM: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Out of memory", Z_STRVAL_PP(file)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: No file?", Z_STRVAL_PP(file)); break;
+			case EEXIST: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Pathname already exists and O_CREAT and O_EXECL were specified", Z_STRVAL_PP(file)); break;
+			case EISDIR: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Can't write to a directory", Z_STRVAL_PP(file)); break;
+			case EACCES: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Access denied", Z_STRVAL_PP(file)); break;
+			case ENODEV: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Requested share does not exist", Z_STRVAL_PP(file)); break;
+			case ENOENT: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Directory in path doesn't exist", Z_STRVAL_PP(file)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't create %s: Unknown error (%d)", Z_STRVAL_PP(file), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	
+	RETURN_LONG(retval);
+}
+
+PHP_FUNCTION(smbclient_read)
+{
+	zval **file, **count;
+	long retval;
+
+	if((ZEND_NUM_ARGS() != 2) || (zend_get_parameters_ex(1, &file) != SUCCESS) || (zend_get_parameters_ex(2, &count)))
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	convert_to_long_ex(file);
+	convert_to_long_ex(count);
+
+        Z_STRVAL_P(return_value) = emalloc(Z_LVAL_PP(count) + 1);
+	retval = smbc_read(Z_LVAL_PP(file), Z_STRVAL_P(return_value), Z_LVAL_PP(count));
+        Z_STRLEN_P(return_value) = retval;
+
+        /* needed because recv/read/gzread doesnt put a null at the end*/
+        Z_STRVAL_P(return_value)[Z_STRLEN_P(return_value)] = 0;
+
+        Z_TYPE_P(return_value) = IS_STRING;
+
+	if(retval < 0) {
+		switch(errno) {
+			case EISDIR: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read from %d: Is a directory", Z_LVAL_PP(file)); break;
+			case EBADF: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read from %d: Not a valid file descriptor or not open for reading", Z_LVAL_PP(file)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read from %d: Object not suitable for reading or bad buffer", Z_LVAL_PP(file)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't read from %d: Unknown error (%d)", Z_LVAL_PP(file), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+}
+
+PHP_FUNCTION(smbclient_close)
+{
+	zval **file;
+	int retval;
+
+	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &file) != SUCCESS))
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	convert_to_long_ex(file);
+
+	retval = smbc_close(Z_LVAL_PP(file));
+	if(retval < 0) {
+		switch(errno) {
+			case EBADF: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't close %d: Not a valid file descriptor or not open for reading", Z_LVAL_PP(file)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't close %d: smbc_init not called", Z_LVAL_PP(file)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't close %d: Unknown error (%d)", Z_LVAL_PP(file), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	
+	RETURN_LONG(retval);
+}
+

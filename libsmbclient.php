@@ -31,11 +31,17 @@ if(isset($_REQUEST["submit"])) {
 		printf("%s: %s (%s)", $de["type"], $de["name"], $de["comment"]);
 		if($de["type"] == "file") {
 			$statbuf = smbclient_stat($url . "/" . $de["name"]);
-			printf(" [%lu bytes]", $statbuf["size"]);
+			printf(" [%lu bytes] {<a href=\"libsmbclient.php?read=1;file=%s\">READ</a>}", $statbuf["size"], htmlentities($url . "/" . $de["name"]));
 		}
 		echo "<br>\n";
 	}
 	smbclient_closedir($dh);
+} else if(isset($_REQUEST["read"])) {
+	$fh = smbclient_open($_REQUEST["file"]);
+	while($str = smbclient_read($fh, 4096)) {
+		echo $str;
+	}
+	smbclient_close($fh);
 }
 ?>
 </tt>
