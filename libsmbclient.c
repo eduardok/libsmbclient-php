@@ -18,6 +18,7 @@
 /* $Id$ */
 #define IS_EXT_MODULE
 
+#include "config.h"
 #include "php.h"
 #include "php_libsmbclient.h"
 #include "ext/standard/info.h"
@@ -61,7 +62,7 @@ zend_module_entry libsmbclient_module_entry =
 	STANDARD_MODULE_PROPERTIES
 };
 
-#if COMPILE_DL_LIBSMBCLIENT
+#ifdef COMPILE_DL_LIBSMBCLIENT
 ZEND_GET_MODULE(libsmbclient)
 #endif
 
