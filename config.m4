@@ -1,47 +1,63 @@
-dnl
 dnl $Id$
-dnl
+dnl config.m4 for extension libsmbclient
 
-PHP_ARG_WITH(libsmbclient,for libsmbclient support,
-[  --with-libsmbclient[=DIR]       Include libsmbclient support])
+dnl Comments in this file start with the string 'dnl'.
+dnl Remove where necessary. This file will not work
+dnl without editing.
 
-PHP_ARG_WITH(libsmbclient-dir,if the location of libsmbclient install directory is defined,
-[  --with-libsmbclient-dir=<DIR>   Define the location of the libsmbclient install directory], no, no)
+dnl If your extension references something external, use with:
 
-if test "$PHP_LIBSMBCLIENT" != "no" -o "$PHP_LIBSMBCLIENT_DIR" != "no"; then
-  PHP_NEW_EXTENSION(libsmbclient, libsmbclient.c, $ext_shared)
-  PHP_SUBST(LIBSMBCLIENT_SHARED_LIBADD)
-  
-  if test "$PHP_LIBSMBCLIENT" != "yes" -a "$PHP_LIBSMBCLIENT" != "no"; then 
-    if test -f $PHP_LIBSMBCLIENT/include/libsmbclient.h; then
-      LIBSMBCLIENT_DIR=$PHP_LIBSMBCLIENT
-      LIBSMBCLIENT_INCDIR=$LIBSMBCLIENT_DIR/include
-    fi
-  else 
-    for i in /usr/local /usr $PHP_LIBSMBCLIENT_DIR; do
-      if test -f $i/include/libsmbclient.h; then
+PHP_ARG_WITH(libsmbclient, for libsmbclient support,
+Make sure that the comment is aligned:
+[  --with-libsmbclient             Include libsmbclient support])
+
+dnl Otherwise use enable:
+
+dnl PHP_ARG_ENABLE(libsmbclient, whether to enable libsmbclient support,
+dnl Make sure that the comment is aligned:
+dnl [  --enable-libsmbclient           Enable libsmbclient support])
+
+if test "$PHP_LIBSMBCLIENT" != "no"; then
+  dnl Write more examples of tests here...
+
+  dnl # --with-libsmbclient -> check with-path
+  SEARCH_PATH="/usr/local /usr"     # you might want to change this
+  SEARCH_FOR="/include/libsmbclient.h"  # you most likely want to change this
+  if test -r $PHP_LIBSMBCLIENT/; then # path given as parameter
+    LIBSMBCLIENT_DIR=$PHP_LIBSMBCLIENT
+  else # search default path list
+    AC_MSG_CHECKING([for libsmbclient files in default path])
+    for i in $SEARCH_PATH ; do
+      if test -r $i/$SEARCH_FOR; then
         LIBSMBCLIENT_DIR=$i
-        LIBSMBCLIENT_INCDIR=$i/include
+        AC_MSG_RESULT(found in $i)
       fi
     done
   fi
-  
+
   if test -z "$LIBSMBCLIENT_DIR"; then
-    AC_MSG_ERROR(Cannot find libsmbclient)
+    AC_MSG_RESULT([not found])
+    AC_MSG_ERROR([Please reinstall the libsmbclient distribution])
   fi
 
-  PHP_CHECK_LIBRARY(smbclient, smbc_init, [
-    AC_DEFINE(HAVE_LIBSMBCLIENT,1,[ ]) 
+  dnl # --with-libsmbclient -> add include path
+  PHP_ADD_INCLUDE($LIBSMBCLIENT_DIR/include)
+
+  dnl # --with-libsmbclient -> chech for lib and symbol presence
+  LIBNAME=smbclient # you may want to change this
+  LIBSYMBOL=smbc_init # you most likely want to change this 
+
+  PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
+  [
+    PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $LIBSMBCLIENT_DIR/lib, LIBSMBCLIENT_SHARED_LIBADD)
+    AC_DEFINE(HAVE_LIBSMBCLIENTLIB,1,[ ])
   ],[
-    AC_MSG_ERROR(libsmbclient extension requires libsmbclient)
+    AC_MSG_ERROR([wrong libsmbclient lib version or lib not found])
   ],[
-    -L$LIBSMBCLIENT_DIR/lib
+    -L$LIBSMBCLIENT_DIR/lib -lm -ldl
   ])
+  
+  PHP_SUBST(LIBSMBCLIENT_SHARED_LIBADD)
 
-  PHP_ADD_LIBPATH($LIBSMBCLIENT_DIR/lib, LIBSMBCLIENT_SHARED_LIBADD)
-
-  PHP_LIBSMBCLIENT_DIR=$LIBSMBCLIENT_DIR
-  PHP_ADD_LIBRARY(smbclient,, LIBSMBCLIENT_SHARED_LIBADD)
-  PHP_ADD_INCLUDE($LIBSMBCLIENT_INCDIR)
-
+  PHP_EXTENSION(libsmbclient, $ext_shared)
 fi

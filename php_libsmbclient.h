@@ -18,13 +18,13 @@
  
 /* $Id$ */
  
-#ifndef _SMBCLIENT_MODULE_H
-#define _SMBCLIENT_MODULE_H
+#ifndef PHP_LIBSMBCLIENT_H
+#define PHP_LIBSMBCLIENT_H
 
 #include <libsmbclient.h>
 
-extern zend_module_entry php_libsmbclient_module_entry;
-#define libsmbclient_module_ptr &php_libsmbclient_module_entry
+extern zend_module_entry libsmbclient_module_entry;
+#define phpext_libsmbclient_ptr &libsmbclient_module_entry
 
 typedef struct {
 } php_libsmbclient_globals;
