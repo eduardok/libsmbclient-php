@@ -19,12 +19,11 @@
 #define IS_EXT_MODULE
 
 #include "php.h"
-#include "smbclient_module.h"
+#include "php_libsmbclient.h"
 
 function_entry smbclientmod_functions[] =
 {
-	PHP_FE(smbclient, NULL),
-	PHP_FE(smbclien_test, NULL),
+	PHP_FE(smbclient_test, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -50,7 +49,7 @@ ZEND_GET_MODULE(smbclientmod)
 #endif
 
 
-void *smbclient_auth_func(const char *server, const char *share, char *workgroup, int wglen, char *username, int userlen, char *password, int passlen) {
+void smbclient_auth_func(const char *server, const char *share, char *workgroup, int wglen, char *username, int userlen, char *password, int passlen) {
 }
 
 

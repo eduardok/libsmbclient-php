@@ -23,8 +23,8 @@
 
 #include <libsmbclient.h>
 
-extern zend_module_entry smbclient_module_entry;
-#define smbclient_module_ptr &smbclient_module_entry;
+extern zend_module_entry php_libsmbclient_module_entry;
+#define libsmbclient_module_ptr &php_libsmbclient_module_entry
 
 ZEND_BEGIN_MODULE_GLOBALS(smbclient)
 	zval **dest_server;
