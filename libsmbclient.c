@@ -22,19 +22,16 @@
 #include "php_libsmbclient.h"
 
 #ifdef ZTS
-static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient_globals_p TSRMLS_DC)
-{
-}
-#endif
-
-
-#ifdef ZTS
 int libsmbclient_globals_id;
-ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
 #else
 #define php_libsmbclient_globals libsmbclient_globals;
 #endif
 
+#ifdef ZTS
+static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient_globals_p TSRMLS_DC)
+{
+}
+#endif
 
 function_entry smbclientmod_functions[] =
 {
@@ -70,6 +67,10 @@ void smbclient_auth_func(const char *server, const char *share, char *workgroup,
 
 PHP_MINIT_FUNCTION(smbclient) {
 	int retval;
+
+	#ifdef ZTS
+	ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
+	#endif
 
 	retval = smbc_init(smbclient_auth_func, 0);
 	if(retval == 0) {
