@@ -23,6 +23,9 @@
 #include "php_libsmbclient.h"
 #include "ext/standard/info.h"
 
+#include <fcntl.h>
+#include <stdio.h>
+
 #ifdef ZTS
 int libsmbclient_globals_id;
 #else
@@ -271,7 +274,7 @@ PHP_FUNCTION(smbclient_stat)
 
 PHP_FUNCTION(smbclient_open)
 {
-	zval **file, **flags, **mode;
+	zval **file; /*, **flags, **mode; */
 	int retval;
 
 	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &file) != SUCCESS) /*|| (zend_get_parameters_ex(2, &flags)) || (zend_get_parameters_ex(3, &mode))*/)
@@ -283,7 +286,7 @@ PHP_FUNCTION(smbclient_open)
 	//convert_to_long_ex(flags);
 	//convert_to_long_ex(mode);
 
-	retval = smbc_open(Z_STRVAL_PP(file), 0, 0); //Z_LVAL_PP(flags), Z_LVAL_PP(mode));
+	retval = smbc_open(Z_STRVAL_PP(file), O_RDONLY, 0666); //Z_LVAL_PP(flags), Z_LVAL_PP(mode));
 
 	if(retval < 0) {
 		switch(errno) {
@@ -301,7 +304,6 @@ PHP_FUNCTION(smbclient_open)
 		RETURN_FALSE;
 	}
 
-	
 	RETURN_LONG(retval);
 }
 
@@ -343,7 +345,7 @@ PHP_FUNCTION(smbclient_read)
 	zval **file, **count;
 	long retval;
 
-	if((ZEND_NUM_ARGS() != 2) || (zend_get_parameters_ex(1, &file) != SUCCESS) || (zend_get_parameters_ex(2, &count)))
+	if((ZEND_NUM_ARGS() != 2) || (zend_get_parameters_ex(2, &file, &count) != SUCCESS))
 	{
 		WRONG_PARAM_COUNT;
 	}
@@ -352,12 +354,10 @@ PHP_FUNCTION(smbclient_read)
 	convert_to_long_ex(count);
 
         Z_STRVAL_P(return_value) = emalloc(Z_LVAL_PP(count) + 1);
-	retval = smbc_read(Z_LVAL_PP(file), Z_STRVAL_P(return_value), Z_LVAL_PP(count));
-        Z_STRLEN_P(return_value) = retval;
 
-        /* needed because recv/read/gzread doesnt put a null at the end*/
+	Z_STRLEN_P(return_value) = smbc_read(Z_LVAL_PP(file), Z_STRVAL_P(return_value), Z_LVAL_PP(count));
+	retval = Z_STRLEN_P(return_value);
         Z_STRVAL_P(return_value)[Z_STRLEN_P(return_value)] = 0;
-
         Z_TYPE_P(return_value) = IS_STRING;
 
 	if(retval < 0) {
@@ -385,6 +385,7 @@ PHP_FUNCTION(smbclient_close)
 	convert_to_long_ex(file);
 
 	retval = smbc_close(Z_LVAL_PP(file));
+
 	if(retval < 0) {
 		switch(errno) {
 			case EBADF: php_error(E_ERROR, "Couldn't close %d: Not a valid file descriptor or not open for reading", Z_LVAL_PP(file)); break;

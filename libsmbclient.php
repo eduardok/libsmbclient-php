@@ -31,11 +31,11 @@ function dodir($url) {
 		printf("<li>%s: %s (%s)", $de["type"], $de["name"], $de["comment"]);
 		if($de["type"] == "file") {
 			$statbuf = smbclient_stat($url . "/" . $de["name"]);
-			printf(" [%lu bytes] {<a href=\"libsmbclient.php?read=1;file=%s\">READ</a>}", $statbuf["size"], htmlentities($url . "/" . $de["name"]));
+			printf(" [%lu bytes] {<a href=\"libsmbclient.php?read=1&amp;url=%s\">READ</a>}", $statbuf["size"], urlencode($url . "/" . $de["name"]));
 		} else if($de["type"] == "file share" || $de["type"] == "directory") {
 			if($de["name"] != "." && $de["name"] != "..") {
-				$stat = smbclient_stat($url . "/" . $de["name"]);
-				printf("Got mode %o.", $stat["mode"]);
+				//$stat = smbclient_stat($url . "/" . $de["name"]);
+				//printf("Got mode %o.", $stat["mode"]);
 				if($stat["mode"] & 04) dodir($url . "/" . $de["name"]);
 			}
 		}
@@ -47,7 +47,7 @@ function dodir($url) {
 if(isset($_REQUEST["submit"])) {
 	dodir($url);
 } else if(isset($_REQUEST["read"])) {
-	$fh = smbclient_open($_REQUEST["file"]);
+	$fh = smbclient_open($url);
 	while($str = smbclient_read($fh, 4096)) {
 		echo $str;
 	}
