@@ -2,7 +2,7 @@ dnl
 dnl $Id$
 dnl
 
-PHP_ARG_WITH(libsmbclient,forlibsmbclient support,
+PHP_ARG_WITH(libsmbclient,for libsmbclient support,
 [  --with-libsmbclient[=DIR]       Include libsmbclient support])
 
 PHP_ARG_WITH(libsmbclient-dir,if the location of libsmbclient install directory is defined,
