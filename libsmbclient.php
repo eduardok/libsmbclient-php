@@ -20,7 +20,12 @@ URL: <input name="url" type="text" value="<?echo htmlentities($url)?>" size="100
 if(isset($_REQUEST["submit"])) {
 	$dh = smbclient_opendir($url);
 	while($de = smbclient_readdir($dh)) {
-		printf("%s: %s (%s)<br>\n", $de["type"], $de["name"], $de["comment"]);
+		printf("%s: %s (%s)", $de["type"], $de["name"], $de["comment"]);
+		if($de["type"] == "file") {
+			$statbuf = smbclient_stat($url . "/" . $de["name"]);
+			printf(" [%lu bytes]", $statbuf["size"]);
+		}
+		echo "<br>\n";
 	}
 	smbclient_closedir($dh);
 }

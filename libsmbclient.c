@@ -38,6 +38,7 @@ function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_opendir, NULL)
 	PHP_FE(smbclient_readdir, NULL)
 	PHP_FE(smbclient_closedir, NULL)
+	PHP_FE(smbclient_stat, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -200,3 +201,63 @@ PHP_FUNCTION(smbclient_readdir)
 	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
 }
 
+PHP_FUNCTION(smbclient_stat)
+{
+	zval **file;
+	struct stat statbuf;
+	int retval;
+
+	if((ZEND_NUM_ARGS() != 1) || (zend_get_parameters_ex(1, &file) != SUCCESS))
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	convert_to_string_ex(file);
+	retval = smbc_stat(Z_STRVAL_PP(file), &statbuf);
+	if(retval < 0) {
+		switch(errno) {
+			case ENOENT: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't stat %s: Does not exist", Z_STRVAL_PP(file)); break;
+			case EINVAL: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't stat: null URL or smbc_init failed"); break;
+			case EACCES: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't stat %s: Permission denied", Z_STRVAL_PP(file)); break;
+			case ENOMEM: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't stat %s: Out of memory", Z_STRVAL_PP(file)); break;
+			case ENOTDIR: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't stat %s: Not a directory", Z_STRVAL_PP(file)); break;
+			default: php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't stat %s: Unknown error (%d)", Z_STRVAL_PP(file), errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	if(array_init(return_value) != SUCCESS) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't initialize array");
+		RETURN_FALSE;
+	}
+
+	add_index_long(return_value, 0, statbuf.st_dev);
+	add_index_long(return_value, 1, statbuf.st_ino);
+	add_index_long(return_value, 2, statbuf.st_mode);
+	add_index_long(return_value, 3, statbuf.st_nlink);
+	add_index_long(return_value, 4, statbuf.st_uid);
+	add_index_long(return_value, 5, statbuf.st_gid);
+	add_index_long(return_value, 6, statbuf.st_rdev);
+	add_index_long(return_value, 7, statbuf.st_size);
+	add_index_long(return_value, 8, statbuf.st_atime);
+	add_index_long(return_value, 9, statbuf.st_mtime);
+	add_index_long(return_value, 10, statbuf.st_ctime);
+	add_index_long(return_value, 11, statbuf.st_blksize);
+	add_index_long(return_value, 12, statbuf.st_blocks);
+
+	add_assoc_long(return_value, "dev", statbuf.st_dev);
+	add_assoc_long(return_value, "ino", statbuf.st_ino);
+	add_assoc_long(return_value, "mode", statbuf.st_mode);
+	add_assoc_long(return_value, "nlink", statbuf.st_nlink);
+	add_assoc_long(return_value, "uid", statbuf.st_uid);
+	add_assoc_long(return_value, "gid", statbuf.st_gid);
+	add_assoc_long(return_value, "rdev", statbuf.st_rdev);
+	add_assoc_long(return_value, "size", statbuf.st_size);
+	add_assoc_long(return_value, "atime", statbuf.st_atime);
+	add_assoc_long(return_value, "mtime", statbuf.st_mtime);
+	add_assoc_long(return_value, "ctime", statbuf.st_ctime);
+	add_assoc_long(return_value, "blksize", statbuf.st_blksize);
+	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
+
+}
