@@ -415,7 +415,6 @@ PHP_FUNCTION(smbclient_read)
 
 		RETURN_FALSE;
 	}
-	RETURN_LONG(retval);
 }
 
 PHP_FUNCTION(smbclient_write)
