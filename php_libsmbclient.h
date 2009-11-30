@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
  
-/* $Id$ */
+/* $Id: php_libsmbclient.h 1216 2003-02-27 04:43:22Z matthewg $ */
  
 #ifndef PHP_LIBSMBCLIENT_H
 #define PHP_LIBSMBCLIENT_H
@@ -34,6 +34,8 @@ PHP_MSHUTDOWN_FUNCTION(smbclient);
 PHP_RINIT_FUNCTION(smbclient);
 PHP_MINFO_FUNCTION(smbclient);
 PHP_FUNCTION(smbclient_opendir);
+PHP_FUNCTION(smbclient_rename);
+PHP_FUNCTION(smbclient_mkdir);
 PHP_FUNCTION(smbclient_closedir);
 PHP_FUNCTION(smbclient_readdir);
 PHP_FUNCTION(smbclient_stat);
