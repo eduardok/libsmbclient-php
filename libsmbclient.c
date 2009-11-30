@@ -51,6 +51,7 @@ function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_close, NULL)
 	PHP_FE(smbclient_mkdir, NULL)
 	PHP_FE(smbclient_rename, NULL)
+	PHP_FE(smbclient_write, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -64,7 +65,7 @@ zend_module_entry libsmbclient_module_entry =
 	PHP_RINIT(smbclient),
 	NULL,
 	PHP_MINFO(smbclient),
-	"0.1",
+	"0.2",
 	STANDARD_MODULE_PROPERTIES
 };
 
@@ -360,9 +361,10 @@ PHP_FUNCTION(smbclient_open)
 PHP_FUNCTION(smbclient_creat)
 {
 	char *file, *mode = "0700";
-	int retval, file_len;
+	long retval;
+	int file_len;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len, &mode) == FAILURE)
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &file, &file_len, &mode) == FAILURE)
 	{
 		WRONG_PARAM_COUNT;
 	}
@@ -388,7 +390,7 @@ PHP_FUNCTION(smbclient_creat)
 
 PHP_FUNCTION(smbclient_read)
 {
-	int file, count, file_len;
+	int file, count;
 	long retval;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE)
@@ -413,6 +415,33 @@ PHP_FUNCTION(smbclient_read)
 
 		RETURN_FALSE;
 	}
+	RETURN_LONG(retval);
+}
+
+PHP_FUNCTION(smbclient_write)
+{
+	int file, count, str_len;
+	char * str;
+	long retval;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE)
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+//        Z_STRVAL_P(return_value) = emalloc(count + 1);
+	retval = smbc_write(file, str, count);
+	if(retval < 0) {
+		switch(errno) {
+			case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
+			case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
+			default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+	RETURN_LONG(retval);
 }
 
 PHP_FUNCTION(smbclient_close)
