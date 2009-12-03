@@ -44,6 +44,8 @@ PHP_FUNCTION(smbclient_creat);
 PHP_FUNCTION(smbclient_read);
 PHP_FUNCTION(smbclient_close);
 PHP_FUNCTION(smbclient_write);
+PHP_FUNCTION(smbclient_unlink);
+PHP_FUNCTION(smbclient_rmdir);
 
 #ifdef ZTS
 #define LIBSMBCLIENT(v) TSRMG(libsmbclient_globals_id, php_libsmbclient_globals *, v)

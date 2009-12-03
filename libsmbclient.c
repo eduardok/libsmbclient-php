@@ -50,8 +50,10 @@ function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_read, NULL)
 	PHP_FE(smbclient_close, NULL)
 	PHP_FE(smbclient_mkdir, NULL)
+	PHP_FE(smbclient_rmdir, NULL)
 	PHP_FE(smbclient_rename, NULL)
 	PHP_FE(smbclient_write, NULL)
+	PHP_FE(smbclient_unlink, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -122,14 +124,14 @@ PHP_FUNCTION(smbclient_opendir)
 	dirhandle = smbc_opendir(path);
 	if(dirhandle < 0) {
 		switch(errno) {
-			case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", &path); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", &path); break;
-			case ENOENT: php_error(E_WARNING, "Couldn't open SMB directory %s: Path does not exist", &path); break;
-			case ENOMEM: php_error(E_WARNING, "Couldn't open SMB directory %s: Insufficient memory", &path); break;
-			case ENOTDIR: php_error(E_WARNING, "Couldn't open SMB directory %s: Not a directory", &path); break;
-			case EPERM: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup not found", &path); break;
-			case ENODEV: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup or server not found", &path); break;
-			default: php_error(E_WARNING, "Couldn't open SMB directory %s: Unknown error (%d)", &path, errno); break;
+			case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", path); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", path); break;
+			case ENOENT: php_error(E_WARNING, "Couldn't open SMB directory %s: Path does not exist", path); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't open SMB directory %s: Insufficient memory", path); break;
+			case ENOTDIR: php_error(E_WARNING, "Couldn't open SMB directory %s: Not a directory", path); break;
+			case EPERM: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup not found", path); break;
+			case ENODEV: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup or server not found", path); break;
+			default: php_error(E_WARNING, "Couldn't open SMB directory %s: Unknown error (%d)", path, errno); break;
 		}
 
 		RETURN_FALSE;
@@ -170,6 +172,62 @@ PHP_FUNCTION(smbclient_rename)
 	RETURN_TRUE;
 }
 
+PHP_FUNCTION(smbclient_unlink)
+{
+	char *url;
+	int url_len, retval;
+
+        if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE)
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	retval = smbc_unlink(url);
+	if(retval < 0) {
+		switch(errno) {
+			case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
+			case ENOENT: php_error(E_WARNING, "Couldn't delete %s: Path does not exist", url); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
+			case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
+			case EISDIR: php_error(E_WARNING, "Couldn't delete %s: It is a Directory (use rmdir instead)", url); break;
+			default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	RETURN_LONG(retval);
+}
+
+PHP_FUNCTION(smbclient_rmdir)
+{
+	char *url;
+	int url_len, retval;
+
+        if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE)
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	retval = smbc_rmdir(url);
+	if(retval < 0) {
+		switch(errno) {
+			case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
+			case ENOENT: php_error(E_WARNING, "Couldn't delete %s: Path does not exist", url); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
+			case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
+			case ENOTEMPTY: php_error(E_WARNING, "Couldn't delete %s: It is not empty", url); break;
+			default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
+		}
+
+		RETURN_FALSE;
+	}
+
+	RETURN_LONG(retval);
+}
+
 PHP_FUNCTION(smbclient_mkdir)
 {
 	char *path = NULL;
@@ -184,12 +242,12 @@ PHP_FUNCTION(smbclient_mkdir)
 	retval = smbc_mkdir(path, (mode_t) mode);
 	if(retval < 0) {
 		switch(errno) {
-			case EACCES: php_error(E_WARNING, "Couldn't create SMB directory %s: Permission denied", &path); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't create SMB directory %s: Invalid URL", &path); break;
-			case ENOENT: php_error(E_WARNING, "Couldn't create SMB directory %s: Path does not exist", &path); break;
-			case ENOMEM: php_error(E_WARNING, "Couldn't create SMB directory %s: Insufficient memory", &path); break;
-			case EEXIST: php_error(E_WARNING, "Couldn't create SMB directory %s: Directory already exists", &path); break;
-			default: php_error(E_WARNING, "Couldn't create SMB directory %s: Unknown error (%d)", &path, errno); break;
+			case EACCES: php_error(E_WARNING, "Couldn't create SMB directory %s: Permission denied", path); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't create SMB directory %s: Invalid URL", path); break;
+			case ENOENT: php_error(E_WARNING, "Couldn't create SMB directory %s: Path does not exist", path); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't create SMB directory %s: Insufficient memory", path); break;
+			case EEXIST: php_error(E_WARNING, "Couldn't create SMB directory %s: Directory already exists", path); break;
+			default: php_error(E_WARNING, "Couldn't create SMB directory %s: Unknown error (%d)", path, errno); break;
 		}
 
 		RETURN_FALSE;
@@ -217,7 +275,7 @@ PHP_FUNCTION(smbclient_closedir)
 		RETURN_FALSE;
 	}
 
-	RETURN_TRUE;
+	RETURN_LONG(retval);
 }
 
 
