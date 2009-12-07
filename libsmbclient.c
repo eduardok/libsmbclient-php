@@ -97,9 +97,8 @@ PHP_MINIT_FUNCTION(smbclient) {
 			case EINVAL: php_error(E_WARNING, "Couldn't initialize libsmbclient: Invalid parameter."); break;
 			default: php_error(E_WARNING, "Couldn't initialize libsmbclient: Unknown error (%d).", errno); break;
 		}
-
-		return FAILURE;
 	}
+	return FAILURE;	
 }
 
 PHP_RINIT_FUNCTION(smbclient) { return SUCCESS; }
@@ -154,16 +153,16 @@ PHP_FUNCTION(smbclient_rename)
 	dirhandle = smbc_rename(ourl,nurl);
 	if(dirhandle < 0) {
 		switch(errno) {
-		        case EISDIR: php_error(E_WARNING, "Couldn't rename SMB directory %s: existing url is not a directory", &ourl); break;
-			case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", &ourl); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", &ourl); break;
-			case ENOENT: php_error(E_WARNING, "Couldn't open SMB directory %s: Path does not exist", &ourl); break;
-			case ENOMEM: php_error(E_WARNING, "Couldn't open SMB directory %s: Insufficient memory", &ourl); break;
-			case ENOTDIR: php_error(E_WARNING, "Couldn't open SMB directory %s: Not a directory", &ourl); break;
-			case EPERM: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup not found", &ourl); break;
-			case EXDEV: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup or server not found", &ourl); break;
-			case EEXIST: php_error(E_WARNING, "Couldn't rename SMB directory %s: new name already exists", &ourl); break;
-			default: php_error(E_WARNING, "Couldn't open SMB directory %s: Unknown error (%d)", &ourl, errno); break;
+		        case EISDIR: php_error(E_WARNING, "Couldn't rename SMB directory %s: existing url is not a directory", ourl); break;
+			case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", ourl); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", ourl); break;
+			case ENOENT: php_error(E_WARNING, "Couldn't open SMB directory %s: Path does not exist", ourl); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't open SMB directory %s: Insufficient memory", ourl); break;
+			case ENOTDIR: php_error(E_WARNING, "Couldn't open SMB directory %s: Not a directory", ourl); break;
+			case EPERM: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup not found", ourl); break;
+			case EXDEV: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup or server not found", ourl); break;
+			case EEXIST: php_error(E_WARNING, "Couldn't rename SMB directory %s: new name already exists", ourl); break;
+			default: php_error(E_WARNING, "Couldn't open SMB directory %s: Unknown error (%d)", ourl, errno); break;
 		}
 
 		RETURN_FALSE;
