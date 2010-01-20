@@ -39,6 +39,28 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 }
 #endif
 
+void hide_password(char *string) {
+	char *u = strchr(string, ':');
+	u++;
+	u = strchr(u, ':');
+	char *s = strrchr(string, '/');
+	char *a = strrchr(string, '@');
+	
+	if (!u) return; /* not using password */
+
+	/* find the last @ before the last /  */
+	while (a && s && (a > s)) {
+		a--;
+		if(strcmp(a,s)==0) break;
+	}
+
+	u++;
+	while (u && a && (u < a) && (u != a)) {
+                u[0] = '*'; /* replace password with asterisk */
+		u++;
+	}
+}
+
 function_entry libsmbclient_functions[] =
 {
 	PHP_FE(smbclient_opendir, NULL)
@@ -122,6 +144,7 @@ PHP_FUNCTION(smbclient_opendir)
 
 	dirhandle = smbc_opendir(path);
 	if(dirhandle < 0) {
+		hide_password(path);
 		switch(errno) {
 			case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", path); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", path); break;
@@ -152,6 +175,7 @@ PHP_FUNCTION(smbclient_rename)
 
 	dirhandle = smbc_rename(ourl,nurl);
 	if(dirhandle < 0) {
+		hide_password(ourl);
 		switch(errno) {
 		        case EISDIR: php_error(E_WARNING, "Couldn't rename SMB directory %s: existing url is not a directory", ourl); break;
 			case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", ourl); break;
@@ -183,6 +207,7 @@ PHP_FUNCTION(smbclient_unlink)
 
 	retval = smbc_unlink(url);
 	if(retval < 0) {
+		hide_password(url);
 		switch(errno) {
 			case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
@@ -211,6 +236,7 @@ PHP_FUNCTION(smbclient_rmdir)
 
 	retval = smbc_rmdir(url);
 	if(retval < 0) {
+		hide_password(url);
 		switch(errno) {
 			case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
@@ -240,6 +266,7 @@ PHP_FUNCTION(smbclient_mkdir)
   
 	retval = smbc_mkdir(path, (mode_t) mode);
 	if(retval < 0) {
+		hide_password(path);
 		switch(errno) {
 			case EACCES: php_error(E_WARNING, "Couldn't create SMB directory %s: Permission denied", path); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't create SMB directory %s: Invalid URL", path); break;
@@ -338,6 +365,7 @@ PHP_FUNCTION(smbclient_stat)
 
 	retval = smbc_stat(file, &statbuf);
 	if(retval < 0) {
+		hide_password(file);
 		switch(errno) {
 			case ENOENT: php_error(E_WARNING, "Couldn't stat %s: Does not exist", file); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't stat: null URL or smbc_init failed"); break;
@@ -397,6 +425,7 @@ PHP_FUNCTION(smbclient_open)
 
 	retval = smbc_open(file, O_RDONLY, 0666);
 	if(retval < 0) {
+		hide_password(file);
 		switch(errno) {
 			case ENOMEM: php_error(E_WARNING, "Couldn't open %s: Out of memory", file); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't open %s: No file?", file); break;
@@ -428,6 +457,7 @@ PHP_FUNCTION(smbclient_creat)
 
 	retval = smbc_creat(file, (mode_t) mode);
 	if(retval < 0) {
+		hide_password(file);
 		switch(errno) {
 			case ENOMEM: php_error(E_WARNING, "Couldn't create %s: Out of memory", file); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't create %s: No file?", file); break;
@@ -485,7 +515,6 @@ PHP_FUNCTION(smbclient_write)
 		WRONG_PARAM_COUNT;
 	}
 
-//        Z_STRVAL_P(return_value) = emalloc(count + 1);
 	retval = smbc_write(file, str, count);
 	if(retval < 0) {
 		switch(errno) {
