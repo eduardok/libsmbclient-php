@@ -41,7 +41,18 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 
 void hide_password(char *string) {
 	char *u = strchr(string, ':');
+	char *findAt;
+	int qtAt = 0;
 	u++;
+	findAt = u;
+	while (findAt) {
+		findAt = strchr(findAt,'@');
+		if (findAt) {
+			findAt++; //skip this one
+			qtAt++;
+		}
+	}
+	
 	u = strchr(u, ':');
 	char *s = strrchr(string, '/');
 	char *a = strrchr(string, '@');
@@ -49,7 +60,7 @@ void hide_password(char *string) {
 	if (!u) return; /* not using password */
 
 	/* find the last @ before the last /  */
-	while (a && s && (a > s)) {
+	while (a && s && (qtAt>1) && (a > s)) {
 		a--;
 		if(strcmp(a,s)==0) break;
 	}
