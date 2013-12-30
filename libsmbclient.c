@@ -140,9 +140,10 @@ ZEND_GET_MODULE(libsmbclient)
 #endif
 
 
-void smbclient_auth_func(const char *server, const char *share, char *workgroup, int wglen, char *username, int userlen, char *password, int passlen) {
+static void
+smbclient_auth_func (const char *server, const char *share, char *workgroup, int wglen, char *username, int userlen, char *password, int passlen)
+{
 }
-
 
 PHP_MINIT_FUNCTION(smbclient)
 {
@@ -185,8 +186,7 @@ PHP_FUNCTION(smbclient_opendir)
 	char *path;
 	int path_len, dirhandle;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &path, &path_len) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &path, &path_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if ((dirhandle = smbc_opendir(path)) >= 0) {
@@ -211,9 +211,7 @@ PHP_FUNCTION(smbclient_rename)
 	char *ourl, *nurl;
 	int ourl_len, nurl_len;
 
-        if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &ourl, &ourl_len,
-                                                                  &nurl, &nurl_len) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &ourl, &ourl_len, &nurl, &nurl_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if (smbc_rename(ourl, nurl) == 0) {
@@ -221,7 +219,7 @@ PHP_FUNCTION(smbclient_rename)
 	}
 	hide_password(ourl, ourl_len);
 	switch (errno) {
-	        case EISDIR: php_error(E_WARNING, "Couldn't rename SMB directory %s: existing url is not a directory", ourl); break;
+		case EISDIR: php_error(E_WARNING, "Couldn't rename SMB directory %s: existing url is not a directory", ourl); break;
 		case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", ourl); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", ourl); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't open SMB directory %s: Path does not exist", ourl); break;
@@ -240,8 +238,7 @@ PHP_FUNCTION(smbclient_unlink)
 	char *url;
 	int url_len;
 
-        if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if (smbc_unlink(url) == 0) {
@@ -265,8 +262,7 @@ PHP_FUNCTION(smbclient_rmdir)
 	char *url;
 	int url_len;
 
-        if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if (smbc_rmdir(url) == 0) {
@@ -291,9 +287,8 @@ PHP_FUNCTION(smbclient_mkdir)
 	int path_len;
 	char *mode = "0700";
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &path, &path_len, &mode) == FAILURE)
-	{
-	        WRONG_PARAM_COUNT;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &path, &path_len, &mode) == FAILURE) {
+		WRONG_PARAM_COUNT;
 	}
 	if (smbc_mkdir(path, (mode_t)mode) == 0) {
 		RETURN_TRUE;
@@ -314,8 +309,7 @@ PHP_FUNCTION(smbclient_closedir)
 {
 	int dirhandle, retval;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if (smbc_closedir(dirhandle) == 0) {
@@ -334,30 +328,25 @@ PHP_FUNCTION(smbclient_readdir)
 	struct smbc_dirent *dirent;
 	char *type;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
-
 	errno = 0;
 	dirent = smbc_readdir(dirhandle);
-	if(dirent == NULL) {
-		switch(errno) {
+	if (dirent == NULL) {
+		switch (errno) {
 			case 0: RETURN_FALSE;
 			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Not a directory handle", dirhandle); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %d: smbc_init not called", dirhandle); break;
 			default: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
 		}
-
 		RETURN_FALSE;
 	}
-
-	if(array_init(return_value) != SUCCESS) {
+	if (array_init(return_value) != SUCCESS) {
 		php_error(E_WARNING, "Couldn't initialize array");
 		RETURN_FALSE;
 	}
-
-	switch(dirent->smbc_type) {
+	switch (dirent->smbc_type) {
 		case SMBC_WORKGROUP: type = "workgroup"; break;
 		case SMBC_SERVER: type = "server"; break;
 		case SMBC_FILE_SHARE: type = "file share"; break;
@@ -370,7 +359,6 @@ PHP_FUNCTION(smbclient_readdir)
 		default: type = "unknown"; break;
 	}
 	add_assoc_string(return_value, "type", type, 1);
-
 	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen, 1);
 	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
 }
@@ -381,15 +369,13 @@ PHP_FUNCTION(smbclient_stat)
 	struct stat statbuf;
 	int retval, file_len;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
-
 	retval = smbc_stat(file, &statbuf);
-	if(retval < 0) {
+	if (retval < 0) {
 		hide_password(file, file_len);
-		switch(errno) {
+		switch (errno) {
 			case ENOENT: php_error(E_WARNING, "Couldn't stat %s: Does not exist", file); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't stat: null URL or smbc_init failed"); break;
 			case EACCES: php_error(E_WARNING, "Couldn't stat %s: Permission denied", file); break;
@@ -397,15 +383,12 @@ PHP_FUNCTION(smbclient_stat)
 			case ENOTDIR: php_error(E_WARNING, "Couldn't stat %s: Not a directory", file); break;
 			default: php_error(E_WARNING, "Couldn't stat %s: Unknown error (%d)", file, errno); break;
 		}
-
 		RETURN_FALSE;
 	}
-
-	if(array_init(return_value) != SUCCESS) {
+	if (array_init(return_value) != SUCCESS) {
 		php_error(E_WARNING, "Couldn't initialize array");
 		RETURN_FALSE;
 	}
-
 	add_index_long(return_value, 0, statbuf.st_dev);
 	add_index_long(return_value, 1, statbuf.st_ino);
 	add_index_long(return_value, 2, statbuf.st_mode);
@@ -433,7 +416,6 @@ PHP_FUNCTION(smbclient_stat)
 	add_assoc_long(return_value, "ctime", statbuf.st_ctime);
 	add_assoc_long(return_value, "blksize", statbuf.st_blksize);
 	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
-
 }
 
 PHP_FUNCTION(smbclient_open)
@@ -442,8 +424,7 @@ PHP_FUNCTION(smbclient_open)
 	int file_len;
 	int handle;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if ((handle = smbc_open(file, O_RDONLY, 0666)) >= 0) {
@@ -470,8 +451,7 @@ PHP_FUNCTION(smbclient_creat)
 	int file_len;
 	int handle;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &file, &file_len, &mode) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &file, &file_len, &mode) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if ((handle = smbc_creat(file, (mode_t)mode)) >= 0) {
@@ -496,26 +476,23 @@ PHP_FUNCTION(smbclient_read)
 	int file, count;
 	long retval;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
-
-        Z_STRVAL_P(return_value) = emalloc(count + 1);
+	Z_STRVAL_P(return_value) = emalloc(count + 1);
 
 	Z_STRLEN_P(return_value) = smbc_read(file, Z_STRVAL_P(return_value), count);
 	retval = Z_STRLEN_P(return_value);
-        Z_STRVAL_P(return_value)[Z_STRLEN_P(return_value)] = 0;
-        Z_TYPE_P(return_value) = IS_STRING;
+	Z_STRVAL_P(return_value)[Z_STRLEN_P(return_value)] = 0;
+	Z_TYPE_P(return_value) = IS_STRING;
 
-	if(retval < 0) {
-		switch(errno) {
+	if (retval < 0) {
+		switch (errno) {
 			case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
 			case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
 			default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
 		}
-
 		RETURN_FALSE;
 	}
 }
@@ -526,8 +503,7 @@ PHP_FUNCTION(smbclient_write)
 	char * str;
 	ssize_t nbytes;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if ((nbytes = smbc_write(file, str, count)) >= 0) {
@@ -546,8 +522,7 @@ PHP_FUNCTION(smbclient_close)
 {
 	int file;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE)
-	{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if (smbc_close(file) == 0) {
