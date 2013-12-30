@@ -474,27 +474,24 @@ PHP_FUNCTION(smbclient_creat)
 PHP_FUNCTION(smbclient_read)
 {
 	int file, count;
-	long retval;
+	ssize_t nbytes;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
-	Z_STRVAL_P(return_value) = emalloc(count + 1);
+	void *buf = emalloc(count);
 
-	Z_STRLEN_P(return_value) = smbc_read(file, Z_STRVAL_P(return_value), count);
-	retval = Z_STRLEN_P(return_value);
-	Z_STRVAL_P(return_value)[Z_STRLEN_P(return_value)] = 0;
-	Z_TYPE_P(return_value) = IS_STRING;
-
-	if (retval < 0) {
-		switch (errno) {
-			case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
-			case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
-			default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
-		}
-		RETURN_FALSE;
+	if ((nbytes = smbc_read(file, buf, count)) >= 0) {
+		RETURN_STRINGL(buf, nbytes, 0);
 	}
+	efree(buf);
+	switch (errno) {
+		case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
+		case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
+		default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
+	}
+	RETURN_FALSE;
 }
 
 PHP_FUNCTION(smbclient_write)
