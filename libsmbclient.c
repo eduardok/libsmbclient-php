@@ -273,7 +273,7 @@ PHP_FUNCTION(smbclient_unlink)
 		RETURN_FALSE;
 	}
 
-	RETURN_LONG(retval);
+	RETURN_TRUE;
 }
 
 PHP_FUNCTION(smbclient_rmdir)
@@ -302,7 +302,7 @@ PHP_FUNCTION(smbclient_rmdir)
 		RETURN_FALSE;
 	}
 
-	RETURN_LONG(retval);
+	RETURN_TRUE;
 }
 
 PHP_FUNCTION(smbclient_mkdir)
@@ -331,7 +331,7 @@ PHP_FUNCTION(smbclient_mkdir)
 		RETURN_FALSE;
 	}
 
-	RETURN_LONG(retval);
+	RETURN_TRUE;
 }
 
 PHP_FUNCTION(smbclient_closedir)
@@ -353,7 +353,7 @@ PHP_FUNCTION(smbclient_closedir)
 		RETURN_FALSE;
 	}
 
-	RETURN_LONG(retval);
+	RETURN_TRUE;
 }
 
 
@@ -601,5 +601,5 @@ PHP_FUNCTION(smbclient_close)
 		RETURN_FALSE;
 	}
 	
-	RETURN_LONG(retval);
+	RETURN_TRUE;
 }
