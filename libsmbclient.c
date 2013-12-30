@@ -473,11 +473,15 @@ PHP_FUNCTION(smbclient_creat)
 
 PHP_FUNCTION(smbclient_read)
 {
-	int file, count;
+	long file, count;
 	ssize_t nbytes;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
 		WRONG_PARAM_COUNT;
+	}
+	if (count < 0) {
+		php_error(E_WARNING, "Negative byte count: %ld", count);
+		RETURN_FALSE;
 	}
 	void *buf = emalloc(count);
 
@@ -496,12 +500,17 @@ PHP_FUNCTION(smbclient_read)
 
 PHP_FUNCTION(smbclient_write)
 {
-	int file, count, str_len;
+	long file, count;
+	int str_len;
 	char * str;
 	ssize_t nbytes;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE) {
 		WRONG_PARAM_COUNT;
+	}
+	if (count < 0) {
+		php_error(E_WARNING, "Negative byte count: %ld", count);
+		RETURN_FALSE;
 	}
 	if ((nbytes = smbc_write(file, str, count)) >= 0) {
 		RETURN_LONG(nbytes);
