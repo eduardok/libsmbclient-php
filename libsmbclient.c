@@ -1,6 +1,6 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 4                                                        |
+   | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
    | Copyright (c) 1997-2002 The PHP Group                                |
    +----------------------------------------------------------------------+
@@ -16,16 +16,19 @@
    |          Eduardo Bacchi Kienetz <eduardo@kienetz.com>                |
    +----------------------------------------------------------------------+
  */
-/* $Id: libsmbclient.c 1220 2003-02-27 18:37:19Z matthewg $ */
+
 #define IS_EXT_MODULE
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
 #include "php.h"
 #include "php_libsmbclient.h"
-#include "ext/standard/info.h"
 
-#include <fcntl.h>
-#include <stdio.h>
+#include <libsmbclient.h>
+
+#define LIBSMBCLIENT_VERSION	"0.2"
 
 #ifdef ZTS
 int libsmbclient_globals_id;
@@ -72,7 +75,7 @@ void hide_password(char *string) {
 	}
 }
 
-function_entry libsmbclient_functions[] =
+static zend_function_entry libsmbclient_functions[] =
 {
 	PHP_FE(smbclient_opendir, NULL)
 	PHP_FE(smbclient_readdir, NULL)
@@ -91,18 +94,17 @@ function_entry libsmbclient_functions[] =
 };
 
 zend_module_entry libsmbclient_module_entry =
-{
-	STANDARD_MODULE_HEADER,
-	"libsmbclient",
-	libsmbclient_functions,
-	PHP_MINIT(smbclient),
-	PHP_MSHUTDOWN(smbclient),
-	PHP_RINIT(smbclient),
-	NULL,
-	PHP_MINFO(smbclient),
-	"0.2",
-	STANDARD_MODULE_PROPERTIES
-};
+	{ STANDARD_MODULE_HEADER
+	, "libsmbclient"		/* name                  */
+	, libsmbclient_functions	/* functions             */
+	, PHP_MINIT(smbclient)		/* module_startup_func   */
+	, PHP_MSHUTDOWN(smbclient)	/* module_shutdown_func  */
+	, PHP_RINIT(smbclient)		/* request_startup_func  */
+	, NULL				/* request_shutdown_func */
+	, PHP_MINFO(smbclient)		/* info_func             */
+	, LIBSMBCLIENT_VERSION		/* version               */
+	, STANDARD_MODULE_PROPERTIES
+	} ;
 
 #ifdef COMPILE_DL_LIBSMBCLIENT
 ZEND_GET_MODULE(libsmbclient)
@@ -113,7 +115,8 @@ void smbclient_auth_func(const char *server, const char *share, char *workgroup,
 }
 
 
-PHP_MINIT_FUNCTION(smbclient) {
+PHP_MINIT_FUNCTION(smbclient)
+{
 	int retval;
 
 	#ifdef ZTS
@@ -134,12 +137,21 @@ PHP_MINIT_FUNCTION(smbclient) {
 	return FAILURE;	
 }
 
-PHP_RINIT_FUNCTION(smbclient) { return SUCCESS; }
-PHP_MSHUTDOWN_FUNCTION(smbclient) { return SUCCESS; }
+PHP_RINIT_FUNCTION(smbclient)
+{
+	return SUCCESS;
+}
 
-PHP_MINFO_FUNCTION(smbclient) {
+PHP_MSHUTDOWN_FUNCTION(smbclient)
+{
+	return SUCCESS;
+}
+
+PHP_MINFO_FUNCTION(smbclient)
+{
 	php_info_print_table_start();
 	php_info_print_table_row(2, "libsmbclient Support", "enabled");
+	php_info_print_table_row(2, "libsmbclient Version", LIBSMBCLIENT_VERSION);
 	php_info_print_table_end();
 }
 

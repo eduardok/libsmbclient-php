@@ -1,6 +1,6 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 4                                                        |
+   | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
    | Copyright (c) 1997-2002 The PHP Group                                |
    +----------------------------------------------------------------------+
@@ -16,12 +16,8 @@
    +----------------------------------------------------------------------+
 */
  
-/* $Id: php_libsmbclient.h 1216 2003-02-27 04:43:22Z matthewg $ */
- 
 #ifndef PHP_LIBSMBCLIENT_H
 #define PHP_LIBSMBCLIENT_H
-
-#include <libsmbclient.h>
 
 extern zend_module_entry libsmbclient_module_entry;
 #define phpext_libsmbclient_ptr &libsmbclient_module_entry
@@ -53,4 +49,4 @@ PHP_FUNCTION(smbclient_rmdir);
 #define LIBSMBCLIENT(v) (libsmbclient_globals.v)
 #endif
 
-#endif /* _SMBCLIENT_MODULE_H */
+#endif /* PHP_LIBSMBCLIENT_H */
