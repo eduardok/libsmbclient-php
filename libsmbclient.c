@@ -319,9 +319,9 @@ PHP_FUNCTION(smbclient_mkdir)
 {
 	char *path = NULL;
 	int path_len;
-	char *mode = "0700";
+	long mode = 0777;	/* Same as PHP's native mkdir() */
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &path, &path_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &path, &path_len, &mode) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if (smbc_mkdir(path, (mode_t)mode) == 0) {
@@ -447,11 +447,12 @@ PHP_FUNCTION(smbclient_open)
 
 PHP_FUNCTION(smbclient_creat)
 {
-	char *file, *mode = "0700";
+	char *file;
 	int file_len;
 	int handle;
+	long mode = 0666;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &file, &file_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
 	if ((handle = smbc_creat(file, (mode_t)mode)) >= 0) {
