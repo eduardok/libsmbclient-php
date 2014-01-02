@@ -208,7 +208,7 @@ PHP_FUNCTION(smbclient_opendir)
 
 PHP_FUNCTION(smbclient_readdir)
 {
-	int dirhandle;
+	long dirhandle;
 	struct smbc_dirent *dirent;
 	char *type;
 
@@ -249,7 +249,7 @@ PHP_FUNCTION(smbclient_readdir)
 
 PHP_FUNCTION(smbclient_closedir)
 {
-	int dirhandle, retval;
+	long dirhandle;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
 		WRONG_PARAM_COUNT;
@@ -528,7 +528,7 @@ PHP_FUNCTION(smbclient_write)
 
 PHP_FUNCTION(smbclient_close)
 {
-	int file;
+	long file;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE) {
 		WRONG_PARAM_COUNT;
