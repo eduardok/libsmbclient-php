@@ -423,11 +423,12 @@ PHP_FUNCTION(smbclient_open)
 	char *file;
 	int file_len;
 	int handle;
+	long mode = 0666;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
-	if ((handle = smbc_open(file, O_RDONLY, 0666)) >= 0) {
+	if ((handle = smbc_open(file, O_RDONLY, mode)) >= 0) {
 		RETURN_LONG(handle);
 	}
 	hide_password(file, file_len);
