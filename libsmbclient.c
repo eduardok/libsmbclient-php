@@ -119,6 +119,7 @@ hide_password (char *url, int len)
 static zend_function_entry libsmbclient_functions[] =
 {
 	PHP_FE(smbclient_state_new, NULL)
+	PHP_FE(smbclient_state_init, NULL)
 	PHP_FE(smbclient_state_free, NULL)
 	PHP_FE(smbclient_opendir, NULL)
 	PHP_FE(smbclient_readdir, NULL)
@@ -228,7 +229,39 @@ PHP_FUNCTION(smbclient_state_new)
 	state = emalloc(sizeof(php_libsmbclient_state));
 	state->ctx = ctx;
 
+	/* Must also save a pointer to the state object inside the context, to
+	 * find the state from the context in the auth function: */
+	smbc_setOptionUserData(ctx, (void *)state);
+
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
+}
+
+PHP_FUNCTION(smbclient_state_init)
+{
+	SMBCCTX *ctx;
+	zval *zstate;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
+		RETURN_FALSE;
+	}
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+
+	if (state->ctx == NULL) {
+		php_error(E_WARNING, "Couldn't init SMB context: context is null");
+		RETURN_FALSE;
+	}
+	if ((ctx = smbc_init_context(state->ctx)) != NULL) {
+		state->ctx = ctx;
+		RETURN_TRUE;
+	}
+	switch (errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't init SMB context: null context given"); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't init SMB context: insufficient memory"); break;
+		case ENOENT: php_error(E_WARNING, "Couldn't init SMB context: cannot load smb.conf"); break;
+		default: php_error(E_WARNING, "Couldn't init SMB context: unknown error %d", errno); break;
+	}
+	RETURN_FALSE;
 }
 
 PHP_FUNCTION(smbclient_state_free)

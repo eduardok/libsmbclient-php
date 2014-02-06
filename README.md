@@ -68,7 +68,19 @@ Acquire a new smbclient state.
 Returns a state resource on success, or `false` on failure.
 The state resource holds persistent data about the current server connection, so that the backend can reuse the existing channel instead of reconnecting for every operation.
 The state resource must be passed on to most of the other functions in this extension.
+Before using the state resource in other functions, it must be initialized by calling `smbclient_state_init`.
 The state resource should be released when you're done with it by passing it to `smbclient_state_free` (although PHP will auto-destroy it when it goes out of scope).
+
+### smbclient_state_init
+
+```php
+bool smbclient_state_init ( resource $state )
+```
+
+Initialize the smbclient state resource.
+Returns `true` on success, `false` on failure.
+Before using the state resource in other functions, it must be initialized.
+Between creating and initializing the resource, you can set certain options for the connection.
 
 ### smbclient_state_free
 
