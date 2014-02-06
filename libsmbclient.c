@@ -44,6 +44,16 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 }
 #endif
 
+typedef struct _php_libsmbclient_state
+{
+	SMBCCTX *ctx;
+}
+php_libsmbclient_state;
+
+#define PHP_LIBSMBCLIENT_STATE_NAME "smbclient state"
+
+int le_libsmbclient_state;
+
 static char *
 find_char (char *start, char *last, char q)
 {
@@ -108,6 +118,8 @@ hide_password (char *url, int len)
 
 static zend_function_entry libsmbclient_functions[] =
 {
+	PHP_FE(smbclient_state_new, NULL)
+	PHP_FE(smbclient_state_free, NULL)
 	PHP_FE(smbclient_opendir, NULL)
 	PHP_FE(smbclient_readdir, NULL)
 	PHP_FE(smbclient_closedir, NULL)
@@ -147,11 +159,29 @@ smbclient_auth_func (const char *server, const char *share, char *workgroup, int
 {
 }
 
+static void
+smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	php_libsmbclient_state *state = (php_libsmbclient_state *)rsrc->ptr;
+
+	/* TODO: if smbc_free_context() returns 0, PHP will leak the handle: */
+	if (state->ctx != NULL && smbc_free_context(state->ctx, 1) != 0) {
+		switch (errno) {
+			case EBUSY: php_error(E_WARNING, "Couldn't destroy SMB context: connection in use"); break;
+			case EBADF: php_error(E_WARNING, "Couldn't destroy SMB context: invalid handle"); break;
+			default: php_error(E_WARNING, "Couldn't destroy SMB context: unknown error"); break;
+		}
+	}
+	efree(state);
+}
+
 PHP_MINIT_FUNCTION(smbclient)
 {
 	#ifdef ZTS
 	ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
 	#endif
+
+	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
 
 	if (smbc_init(smbclient_auth_func, 0) == 0) {
 		return SUCCESS;
@@ -181,6 +211,51 @@ PHP_MINFO_FUNCTION(smbclient)
 	php_info_print_table_row(2, "libsmbclient Support", "enabled");
 	php_info_print_table_row(2, "libsmbclient Version", LIBSMBCLIENT_VERSION);
 	php_info_print_table_end();
+}
+
+PHP_FUNCTION(smbclient_state_new)
+{
+	SMBCCTX *ctx;
+	php_libsmbclient_state *state;
+
+	if ((ctx = smbc_new_context()) == NULL) {
+		switch (errno) {
+			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
+			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error %d", errno); break;
+		};
+		RETURN_FALSE;
+	}
+	state = emalloc(sizeof(php_libsmbclient_state));
+	state->ctx = ctx;
+
+	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
+}
+
+PHP_FUNCTION(smbclient_state_free)
+{
+	zval *zstate;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
+		RETURN_FALSE;
+	}
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+
+	if (state->ctx == NULL) {
+		zend_list_delete(Z_LVAL_P(zstate));
+		RETURN_TRUE;
+	}
+	if (smbc_free_context(state->ctx, 1) == 0) {
+		state->ctx = NULL;
+		zend_list_delete(Z_LVAL_P(zstate));
+		RETURN_TRUE;
+	}
+	switch (errno) {
+		case EBUSY: php_error(E_WARNING, "Couldn't destroy smbclient state: connection in use"); break;
+		case EBADF: php_error(E_WARNING, "Couldn't destroy smbclient state: invalid handle"); break;
+		default: php_error(E_WARNING, "Couldn't destroy smbclient state: unknown error"); break;
+	}
+	RETURN_FALSE;
 }
 
 PHP_FUNCTION(smbclient_opendir)

@@ -58,6 +58,27 @@ smb://server/share
 smb://user:password@server/share/path/to/file.txt
 ```
 
+### smbclient_state_new
+
+```php
+resource smbclient_state_new ( )
+```
+
+Acquire a new smbclient state.
+Returns a state resource on success, or `false` on failure.
+The state resource holds persistent data about the current server connection, so that the backend can reuse the existing channel instead of reconnecting for every operation.
+The state resource must be passed on to most of the other functions in this extension.
+The state resource should be released when you're done with it by passing it to `smbclient_state_free` (although PHP will auto-destroy it when it goes out of scope).
+
+### smbclient_state_free
+
+```php
+bool smbclient_state_free ( resource $state )
+```
+
+Release the state resource passed to it.
+Returns `true` on success, `false` on failure.
+
 ### smbclient_opendir
 
 ```php
