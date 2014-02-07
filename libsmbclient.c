@@ -47,6 +47,12 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 typedef struct _php_libsmbclient_state
 {
 	SMBCCTX *ctx;
+	char *wrkg;
+	char *user;
+	char *pass;
+	int wrkglen;
+	int userlen;
+	int passlen;
 }
 php_libsmbclient_state;
 
@@ -154,10 +160,39 @@ zend_module_entry libsmbclient_module_entry =
 ZEND_GET_MODULE(libsmbclient)
 #endif
 
+static void
+auth_copy (char *dst, char *src, size_t srclen, size_t maxlen)
+{
+	if (dst == NULL || maxlen == 0) {
+		return;
+	}
+	if (src == NULL || srclen == 0) {
+		*dst = '\0';
+		return;
+	}
+	if (srclen < maxlen) {
+		memcpy(dst, src, srclen);
+		dst[srclen] = '\0';
+		return;
+	}
+	memcpy(dst, src, maxlen - 1);
+	dst[maxlen - 1] = '\0';
+}
 
 static void
-smbclient_auth_func (const char *server, const char *share, char *workgroup, int wglen, char *username, int userlen, char *password, int passlen)
+smbclient_auth_func (SMBCCTX *ctx, const char *server, const char *share, char *wrkg, int wrkglen, char *user, int userlen, char *pass, int passlen)
 {
+	/* Given context, server and share, return workgroup, username and password.
+	 * String lengths are the max allowable lengths. */
+
+	php_libsmbclient_state *state;
+
+	if (ctx == NULL || (state = smbc_getOptionUserData(ctx)) == NULL) {
+		return;
+	}
+	auth_copy(wrkg, state->wrkg, (size_t)state->wrkglen, (size_t)wrkglen);
+	auth_copy(user, state->user, (size_t)state->userlen, (size_t)userlen);
+	auth_copy(pass, state->pass, (size_t)state->passlen, (size_t)passlen);
 }
 
 static void
@@ -173,6 +208,18 @@ smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
 			default: php_error(E_WARNING, "Couldn't destroy SMB context: unknown error"); break;
 		}
 	}
+	if (state->wrkg != NULL) {
+		memset(state->wrkg, 0, state->wrkglen);
+		efree(state->wrkg);
+	}
+	if (state->user != NULL) {
+		memset(state->user, 0, state->userlen);
+		efree(state->user);
+	}
+	if (state->pass != NULL) {
+		memset(state->pass, 0, state->passlen);
+		efree(state->pass);
+	}
 	efree(state);
 }
 
@@ -184,16 +231,7 @@ PHP_MINIT_FUNCTION(smbclient)
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
 
-	if (smbc_init(smbclient_auth_func, 0) == 0) {
-		return SUCCESS;
-	}
-	switch (errno) {
-		case ENOMEM: php_error(E_WARNING, "Couldn't initialize libsmbclient: Out of memory."); break;
-		case ENOENT: php_error(E_WARNING, "Couldn't initialize libsmbclient: The smb.conf file would not load.  It must be located in ~/.smb/ (probably /root/.smb) ."); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't initialize libsmbclient: Invalid parameter."); break;
-		default: php_error(E_WARNING, "Couldn't initialize libsmbclient: Unknown error (%d).", errno); break;
-	}
-	return FAILURE;	
+	return SUCCESS;
 }
 
 PHP_RINIT_FUNCTION(smbclient)
@@ -228,6 +266,14 @@ PHP_FUNCTION(smbclient_state_new)
 	}
 	state = emalloc(sizeof(php_libsmbclient_state));
 	state->ctx = ctx;
+	state->wrkg = NULL;
+	state->user = NULL;
+	state->pass = NULL;
+	state->wrkglen = 0;
+	state->userlen = 0;
+	state->passlen = 0;
+
+	smbc_setFunctionAuthDataWithContext(state->ctx, smbclient_auth_func);
 
 	/* Must also save a pointer to the state object inside the context, to
 	 * find the state from the context in the auth function: */
