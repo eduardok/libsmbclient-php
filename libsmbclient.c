@@ -282,19 +282,66 @@ PHP_FUNCTION(smbclient_state_new)
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
 }
 
+static int
+ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
+{
+	if (*dest != NULL) {
+		efree(*dest);
+		*dest = NULL;
+	}
+	*destlen = 0;
+
+	if (z == NULL) {
+		return 1;
+	}
+	switch (Z_TYPE_P(z))
+	{
+		case IS_NULL:
+			return 1;
+
+		case IS_BOOL:
+			if (Z_LVAL_P(z) == 1) {
+				php_error(E_WARNING, "invalid value for %s", varname);
+				return 0;
+			}
+			return 1;
+
+		case IS_STRING:
+			*destlen = Z_STRLEN_P(z);
+			*dest = estrndup(Z_STRVAL_P(z), *destlen);
+			return 1;
+
+		default:
+			php_error(E_WARNING, "invalid datatype for %s", varname);
+			return 0;
+	}
+}
+
 PHP_FUNCTION(smbclient_state_init)
 {
 	SMBCCTX *ctx;
 	zval *zstate;
+	zval *zwrkg = NULL;
+	zval *zuser = NULL;
+	zval *zpass = NULL;
 	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|zzz", &zstate, &zwrkg, &zuser, &zpass) != SUCCESS) {
 		RETURN_FALSE;
 	}
 	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
 
 	if (state->ctx == NULL) {
 		php_error(E_WARNING, "Couldn't init SMB context: context is null");
+		RETURN_FALSE;
+	}
+	if (ctx_init_getauth(zwrkg, &state->wrkg, &state->wrkglen, "workgroup") == 0) {
+		RETURN_FALSE;
+	}
+	if (ctx_init_getauth(zuser, &state->user, &state->userlen, "username") == 0) {
+		RETURN_FALSE;
+	}
+	if (ctx_init_getauth(zpass, &state->pass, &state->passlen, "password") == 0) {
 		RETURN_FALSE;
 	}
 	if ((ctx = smbc_init_context(state->ctx)) != NULL) {

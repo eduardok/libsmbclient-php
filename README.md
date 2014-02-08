@@ -74,13 +74,16 @@ The state resource should be released when you're done with it by passing it to 
 ### smbclient_state_init
 
 ```php
-bool smbclient_state_init ( resource $state )
+bool smbclient_state_init ( resource $state [, string $workgroup = null [, string $username = null [, string $password = null ] ] ] )
 ```
 
 Initialize the smbclient state resource.
 Returns `true` on success, `false` on failure.
 Before using the state resource in other functions, it must be initialized.
 Between creating and initializing the resource, you can set certain options for the connection.
+Workgroup, username and password are optional parameters.
+You can specify any of them as `null` or `false` to indicate that the credential is not available.
+Such might be the case for anonymous or guest access.
 
 ### smbclient_state_free
 
