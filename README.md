@@ -97,7 +97,7 @@ Returns `true` on success, `false` on failure.
 ### smbclient_opendir
 
 ```php
-int smbclient_opendir ( string $uri )
+int smbclient_opendir ( resource $state, string $uri )
 ```
 
 Opens the given directory for reading with `smbclient_readdir`.
@@ -108,7 +108,7 @@ The directory handle should be closed after use with `smbclient_closedir`.
 ### smbclient_readdir
 
 ```php
-array smbclient_readdir ( int $dirhandle )
+array smbclient_readdir ( resource $state, int $dirhandle )
 ```
 
 Reads the next entry from the given directory handle obtained with `smbclient_opendir`.
@@ -142,7 +142,7 @@ Comment and name are passed through from libsmbclient.
 ### smbclient_closedir
 
 ```php
-bool smbclient_closedir ( int $dirhandle )
+bool smbclient_closedir ( resource $state, int $dirhandle )
 ```
 
 Closes a directory handle obtained with `smbclient_opendir`.
@@ -151,17 +151,19 @@ Returns `true` on success, `false` on failure.
 ### smbclient_rename
 
 ```php
-bool smbclient_rename ( string $uri_old, string $uri_new )
+bool smbclient_rename ( resource $state_old, string $uri_old, resource $state_new, string $uri_new )
 ```
 
 Renames the old file/directory to the new file/directory.
+`$state_old` and `$state_new` refer to the states belonging to the old and new URI's.
 Due to a limitation of the underlying library, old and new locations must be on the same share.
+Due to the same limitation, `$state_old` and `$state_new` should point to the same resource.
 Returns `true` on success, `false` on failure.
 
 ### smbclient_unlink
 
 ```php
-bool smbclient_unlink ( string $uri )
+bool smbclient_unlink ( resource $state, string $uri )
 ```
 
 Unlinks (deletes) the file.
@@ -171,7 +173,7 @@ Returns `true` on success, `false` on failure.
 ### smbclient_mkdir
 
 ```php
-bool smbclient_mkdir ( string $uri [, int $mask = 0777 ] )
+bool smbclient_mkdir ( resource $state, string $uri [, int $mask = 0777 ] )
 ```
 
 Creates the given directory.
@@ -182,7 +184,7 @@ Returns `true` on success, `false` on failure.
 ### smbclient_rmdir
 
 ```php
-bool smbclient_rmdir ( string $uri )
+bool smbclient_rmdir ( resource $state, string $uri )
 ```
 
 Deletes the given directory if empty.
@@ -191,7 +193,7 @@ Returns `true` on success, `false` on failure.
 ### smbclient_stat
 
 ```php
-array smbclient_stat ( string $uri )
+array smbclient_stat ( resource $state, string $uri )
 ```
 
 Returns information about the given file or directory.
@@ -202,7 +204,7 @@ See that manual for a complete description.
 ### smbclient_open
 
 ```php
-int smbclient_open ( string $uri, string $mode [, int $mask = 0666 ] )
+int smbclient_open ( resource $state, string $uri, string $mode [, int $mask = 0666 ] )
 ```
 
 Opens a file for reading or writing according to the `$mode` specified.
@@ -231,7 +233,7 @@ Returns a file handle on success, or `false` on failure.
 ### smbclient_creat
 
 ```php
-int smbclient_creat ( string $uri [, int $mask = 0666 ] )
+int smbclient_creat ( resource $state, string $uri [, int $mask = 0666 ] )
 ```
 
 Almost the same as calling `smbclient_open` with mode `'c'`, but will truncate the file to 0 bytes if it already exists.
@@ -242,7 +244,7 @@ Returns a file handle on success, or `false` on failure.
 ### smbclient_read
 
 ```php
-string smbclient_read ( int $filehandle, int $bytes )
+string smbclient_read ( resource $state, int $filehandle, int $bytes )
 ```
 
 Reads data from a file handle obtained through `smbclient_open` or `smbclient_creat`.
@@ -252,7 +254,7 @@ Returns a string longer than 0 bytes on success, a string of 0 bytes on end-of-f
 ### smbclient_write
 
 ```php
-int smbclient_write ( int $filehandle, string $data [, int $length ] )
+int smbclient_write ( resource $state, int $filehandle, string $data [, int $length ] )
 ```
 
 Writes data to a file handle obtained through `smbclient_open` or `smbclient_creat`.
@@ -266,7 +268,7 @@ Returns the number of bytes written on success, or `false` on failure.
 ### smbclient_close
 
 ```php
-bool smbclient_close ( int $filehandle )
+bool smbclient_close ( resource $state, int $filehandle )
 ```
 
 Close a file handle obtained with `smbclient_open` or `smbclient_creat`.

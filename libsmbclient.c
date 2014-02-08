@@ -384,15 +384,30 @@ PHP_FUNCTION(smbclient_state_free)
 	RETURN_FALSE;
 }
 
+#define STATE_FROM_ZSTATE \
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state); \
+	if (state == NULL || state->ctx == NULL) { \
+		php_error(E_WARNING, PHP_LIBSMBCLIENT_STATE_NAME " not found"); \
+		RETURN_FALSE; \
+	}
+
 PHP_FUNCTION(smbclient_opendir)
 {
 	char *path;
 	int path_len, dirhandle;
+	zval *zstate;
+	smbc_opendir_fn smbc_opendir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &path, &path_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &path, &path_len) == FAILURE) {
 		return;
 	}
-	if ((dirhandle = smbc_opendir(path)) >= 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_opendir = smbc_getFunctionOpendir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((dirhandle = smbc_opendir(state->ctx, path)) >= 0) {
 		RETURN_LONG(dirhandle);
 	}
 	hide_password(path, path_len);
@@ -414,12 +429,20 @@ PHP_FUNCTION(smbclient_readdir)
 	long dirhandle;
 	struct smbc_dirent *dirent;
 	char *type;
+	zval *zstate;
+	smbc_readdir_fn smbc_readdir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &dirhandle) == FAILURE) {
 		return;
 	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_readdir = smbc_getFunctionReaddir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
 	errno = 0;
-	dirent = smbc_readdir(dirhandle);
+	dirent = smbc_readdir(state->ctx, dirhandle);
 	if (dirent == NULL) {
 		switch (errno) {
 			case 0: RETURN_FALSE;
@@ -453,11 +476,19 @@ PHP_FUNCTION(smbclient_readdir)
 PHP_FUNCTION(smbclient_closedir)
 {
 	long dirhandle;
+	zval *zstate;
+	smbc_closedir_fn smbc_closedir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &dirhandle) == FAILURE) {
 		return;
 	}
-	if (smbc_closedir(dirhandle) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_closedir = smbc_getFunctionClosedir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_closedir(state->ctx, dirhandle) == 0) {
 		RETURN_TRUE;
 	}
 	switch (errno) {
@@ -471,11 +502,30 @@ PHP_FUNCTION(smbclient_rename)
 {
 	char *ourl, *nurl;
 	int ourl_len, nurl_len;
+	zval *zstate_old;
+	zval *zstate_new;
+	smbc_rename_fn smbc_rename;
+	php_libsmbclient_state *state_old;
+	php_libsmbclient_state *state_new;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &ourl, &ourl_len, &nurl, &nurl_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsrs", &zstate_old, &ourl, &ourl_len, &zstate_new, &nurl, &nurl_len) == FAILURE) {
 		return;
 	}
-	if (smbc_rename(ourl, nurl) == 0) {
+	ZEND_FETCH_RESOURCE(state_old, php_libsmbclient_state *, &zstate_old, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	ZEND_FETCH_RESOURCE(state_new, php_libsmbclient_state *, &zstate_new, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+
+	if (state_old == NULL || state_old->ctx == NULL) {
+		php_error(E_WARNING, "old " PHP_LIBSMBCLIENT_STATE_NAME " is null");
+		RETURN_FALSE;
+	}
+	if (state_new == NULL || state_new->ctx == NULL) {
+		php_error(E_WARNING, "new " PHP_LIBSMBCLIENT_STATE_NAME " is null");
+		RETURN_FALSE;
+	}
+	if ((smbc_rename = smbc_getFunctionRename(state_old->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_rename(state_old->ctx, ourl, state_new->ctx, nurl) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(ourl, ourl_len);
@@ -498,11 +548,19 @@ PHP_FUNCTION(smbclient_unlink)
 {
 	char *url;
 	int url_len;
+	zval *zstate;
+	smbc_unlink_fn smbc_unlink;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &url, &url_len) == FAILURE) {
 		return;
 	}
-	if (smbc_unlink(url) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_unlink = smbc_getFunctionUnlink(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_unlink(state->ctx, url) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(url, url_len);
@@ -524,11 +582,19 @@ PHP_FUNCTION(smbclient_mkdir)
 	char *path = NULL;
 	int path_len;
 	long mode = 0777;	/* Same as PHP's native mkdir() */
+	zval *zstate;
+	smbc_mkdir_fn smbc_mkdir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &path, &path_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &zstate, &path, &path_len, &mode) == FAILURE) {
 		return;
 	}
-	if (smbc_mkdir(path, (mode_t)mode) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_mkdir = smbc_getFunctionMkdir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_mkdir(state->ctx, path, (mode_t)mode) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(path, path_len);
@@ -547,11 +613,19 @@ PHP_FUNCTION(smbclient_rmdir)
 {
 	char *url;
 	int url_len;
+	zval *zstate;
+	smbc_rmdir_fn smbc_rmdir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &url, &url_len) == FAILURE) {
 		return;
 	}
-	if (smbc_rmdir(url) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_rmdir = smbc_getFunctionRmdir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_rmdir(state->ctx, url) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(url, url_len);
@@ -572,11 +646,19 @@ PHP_FUNCTION(smbclient_stat)
 	char *file;
 	struct stat statbuf;
 	int retval, file_len;
+	zval *zstate;
+	smbc_stat_fn smbc_stat;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &file, &file_len) == FAILURE) {
 		return;
 	}
-	retval = smbc_stat(file, &statbuf);
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_stat = smbc_getFunctionStat(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	retval = smbc_stat(state->ctx, file, &statbuf);
 	if (retval < 0) {
 		hide_password(file, file_len);
 		switch (errno) {
@@ -663,17 +745,25 @@ PHP_FUNCTION(smbclient_open)
 	int handle;
 	int smbflags;
 	long mode = 0666;
+	zval *zstate;
+	smbc_open_fn smbc_open;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &file, &file_len, &flags, &flags_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss|l", &zstate, &file, &file_len, &flags, &flags_len, &mode) == FAILURE) {
 		return;
 	}
+	STATE_FROM_ZSTATE;
+
 	/* The flagstring is in the same format as the native fopen() uses, so
 	 * one of the characters r, w, a, x, c, optionally followed by a plus.
 	 * Need to translate this to an integer value for smbc_open: */
 	if (flagstring_to_smbflags(flags, flags_len, &smbflags) == 0) {
 		RETURN_FALSE;
 	}
-	if ((handle = smbc_open(file, smbflags, mode)) >= 0) {
+	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((handle = smbc_open(state->ctx, file, smbflags, mode)) >= 0) {
 		RETURN_LONG(handle);
 	}
 	hide_password(file, file_len);
@@ -697,11 +787,19 @@ PHP_FUNCTION(smbclient_creat)
 	int file_len;
 	int handle;
 	long mode = 0666;
+	zval *zstate;
+	smbc_creat_fn smbc_creat;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &zstate, &file, &file_len, &mode) == FAILURE) {
 		return;
 	}
-	if ((handle = smbc_creat(file, (mode_t)mode)) >= 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_creat = smbc_getFunctionCreat(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((handle = smbc_creat(state->ctx, file, (mode_t)mode)) >= 0) {
 		RETURN_LONG(handle);
 	}
 	hide_password(file, file_len);
@@ -722,17 +820,25 @@ PHP_FUNCTION(smbclient_read)
 {
 	long file, count;
 	ssize_t nbytes;
+	zval *zstate;
+	smbc_read_fn smbc_read;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &zstate, &file, &count) == FAILURE) {
 		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
 		RETURN_FALSE;
 	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_read = smbc_getFunctionRead(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
 	void *buf = emalloc(count);
 
-	if ((nbytes = smbc_read(file, buf, count)) >= 0) {
+	if ((nbytes = smbc_read(state->ctx, file, buf, count)) >= 0) {
 		RETURN_STRINGL(buf, nbytes, 0);
 	}
 	efree(buf);
@@ -752,8 +858,11 @@ PHP_FUNCTION(smbclient_write)
 	char * str;
 	size_t nwrite;
 	ssize_t nbytes;
+	zval *zstate;
+	smbc_write_fn smbc_write;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls|l", &file, &str, &str_len, &count) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rls|l", &zstate, &file, &str, &str_len, &count) == FAILURE) {
 		return;
 	}
 	if (count < 0) {
@@ -766,7 +875,12 @@ PHP_FUNCTION(smbclient_write)
 	else {
 		nwrite = count;
 	}
-	if ((nbytes = smbc_write(file, str, nwrite)) >= 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_write = smbc_getFunctionWrite(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((nbytes = smbc_write(state->ctx, file, str, nwrite)) >= 0) {
 		RETURN_LONG(nbytes);
 	}
 	switch (errno) {
@@ -782,11 +896,19 @@ PHP_FUNCTION(smbclient_write)
 PHP_FUNCTION(smbclient_close)
 {
 	long file;
+	zval *zstate;
+	smbc_close_fn smbc_close;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &file) == FAILURE) {
 		return;
 	}
-	if (smbc_close(file) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_close = smbc_getFunctionClose(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_close(state->ctx, file) == 0) {
 		RETURN_TRUE;
 	}
 	switch (errno) {
