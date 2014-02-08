@@ -204,7 +204,7 @@ See that manual for a complete description.
 ### smbclient_open
 
 ```php
-int smbclient_open ( resource $state, string $uri, string $mode [, int $mask = 0666 ] )
+resource smbclient_open ( resource $state, string $uri, string $mode [, int $mask = 0666 ] )
 ```
 
 Opens a file for reading or writing according to the `$mode` specified.
@@ -228,36 +228,36 @@ value  | description
 `'c'`  | open write-only, create if not exists; if it already exists, don't return error. Do not truncate, but place file pointer at start of file.
 `'c+'` | as above, but open read-write.
 
-Returns a file handle on success, or `false` on failure.
+Returns a file resource on success, or `false` on failure.
 
 ### smbclient_creat
 
 ```php
-int smbclient_creat ( resource $state, string $uri [, int $mask = 0666 ] )
+resource smbclient_creat ( resource $state, string $uri [, int $mask = 0666 ] )
 ```
 
 Almost the same as calling `smbclient_open` with mode `'c'`, but will truncate the file to 0 bytes if it already exists.
 Opens the file write-only and creates it if it doesn't already exist.
 
-Returns a file handle on success, or `false` on failure.
+Returns a file resource on success, or `false` on failure.
 
 ### smbclient_read
 
 ```php
-string smbclient_read ( resource $state, int $filehandle, int $bytes )
+string smbclient_read ( resource $state, resource $file, int $bytes )
 ```
 
-Reads data from a file handle obtained through `smbclient_open` or `smbclient_creat`.
+Reads data from a file resource obtained through `smbclient_open` or `smbclient_creat`.
 Tries to read the amount of bytes given in `$bytes`, but may return less.
 Returns a string longer than 0 bytes on success, a string of 0 bytes on end-of-file, or `false` on failure.
 
 ### smbclient_write
 
 ```php
-int smbclient_write ( resource $state, int $filehandle, string $data [, int $length ] )
+int smbclient_write ( resource $state, resource $file, string $data [, int $length ] )
 ```
 
-Writes data to a file handle obtained through `smbclient_open` or `smbclient_creat`.
+Writes data to a file resource obtained through `smbclient_open` or `smbclient_creat`.
 If `$length` is not specified, write the whole contents of `$data`.
 If `$length` is specified, write either the whole contents of `$data` or `$length` bytes, whichever is less.
 `$length`, if specified, must be larger than 0.
@@ -268,8 +268,8 @@ Returns the number of bytes written on success, or `false` on failure.
 ### smbclient_close
 
 ```php
-bool smbclient_close ( resource $state, int $filehandle )
+bool smbclient_close ( resource $state, resource $file )
 ```
 
-Close a file handle obtained with `smbclient_open` or `smbclient_creat`.
+Close a file resource obtained with `smbclient_open` or `smbclient_creat`.
 Returns `true` on success, `false` on failure.
