@@ -57,8 +57,10 @@ typedef struct _php_libsmbclient_state
 php_libsmbclient_state;
 
 #define PHP_LIBSMBCLIENT_STATE_NAME "smbclient state"
+#define PHP_LIBSMBCLIENT_FILE_NAME "smbclient file"
 
 int le_libsmbclient_state;
+int le_libsmbclient_file;
 
 static char *
 find_char (char *start, char *last, char q)
@@ -223,6 +225,19 @@ smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	efree(state);
 }
 
+static void
+smbclient_file_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	/* Because libsmbclient's file/dir close functions require a pointer to
+	 * a context which we don't have, we cannot reliably destroy a file
+	 * resource. One way of obtaining the context pointer could be to save
+	 * it in a structure along with the file context, but the pointer could
+	 * grow stale or otherwise spark a race condition. So it seems that the
+	 * best we can do is nothing. The PHP programmer can either manually
+	 * free the file resources, or wait for them to be cleaned up when the
+	 * associated context is destroyed. */
+}
+
 PHP_MINIT_FUNCTION(smbclient)
 {
 	#ifdef ZTS
@@ -230,6 +245,7 @@ PHP_MINIT_FUNCTION(smbclient)
 	#endif
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
+	le_libsmbclient_file = zend_register_list_destructors_ex(smbclient_file_dtor, NULL, PHP_LIBSMBCLIENT_FILE_NAME, module_number);
 
 	return SUCCESS;
 }
@@ -391,11 +407,19 @@ PHP_FUNCTION(smbclient_state_free)
 		RETURN_FALSE; \
 	}
 
+#define FILE_FROM_ZFILE \
+	ZEND_FETCH_RESOURCE(file, SMBCFILE *, &zfile, -1, PHP_LIBSMBCLIENT_FILE_NAME, le_libsmbclient_file); \
+	if (file == NULL) { \
+		php_error(E_WARNING, PHP_LIBSMBCLIENT_FILE_NAME " not found"); \
+		RETURN_FALSE; \
+	}
+
 PHP_FUNCTION(smbclient_opendir)
 {
 	char *path;
-	int path_len, dirhandle;
+	int path_len;
 	zval *zstate;
+	SMBCFILE *dir;
 	smbc_opendir_fn smbc_opendir;
 	php_libsmbclient_state *state;
 
@@ -407,8 +431,9 @@ PHP_FUNCTION(smbclient_opendir)
 	if ((smbc_opendir = smbc_getFunctionOpendir(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
-	if ((dirhandle = smbc_opendir(state->ctx, path)) >= 0) {
-		RETURN_LONG(dirhandle);
+	if ((dir = smbc_opendir(state->ctx, path)) != NULL) {
+		ZEND_REGISTER_RESOURCE(return_value, dir, le_libsmbclient_file);
+		return;
 	}
 	hide_password(path, path_len);
 	switch (errno) {
@@ -426,29 +451,30 @@ PHP_FUNCTION(smbclient_opendir)
 
 PHP_FUNCTION(smbclient_readdir)
 {
-	long dirhandle;
 	struct smbc_dirent *dirent;
 	char *type;
 	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
 	smbc_readdir_fn smbc_readdir;
 	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
 		return;
 	}
 	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
 
 	if ((smbc_readdir = smbc_getFunctionReaddir(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
 	errno = 0;
-	dirent = smbc_readdir(state->ctx, dirhandle);
-	if (dirent == NULL) {
+	if ((dirent = smbc_readdir(state->ctx, file)) == NULL) {
 		switch (errno) {
 			case 0: RETURN_FALSE;
-			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Not a directory handle", dirhandle); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: smbc_init not called", dirhandle); break;
-			default: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
+			case EBADF: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory resource"); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": State resource not initialized"); break;
+			default: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -475,25 +501,28 @@ PHP_FUNCTION(smbclient_readdir)
 
 PHP_FUNCTION(smbclient_closedir)
 {
-	long dirhandle;
 	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
 	smbc_closedir_fn smbc_closedir;
 	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
 		return;
 	}
 	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
 
 	if ((smbc_closedir = smbc_getFunctionClosedir(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
-	if (smbc_closedir(state->ctx, dirhandle) == 0) {
+	if (smbc_closedir(state->ctx, file) == 0) {
+		zend_list_delete(Z_LVAL_P(zfile));
 		RETURN_TRUE;
 	}
 	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Not a directory handle", dirhandle); break;
-		default: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
+		case EBADF: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory resource"); break;
+		default: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }

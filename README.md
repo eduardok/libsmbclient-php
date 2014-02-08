@@ -97,21 +97,21 @@ Returns `true` on success, `false` on failure.
 ### smbclient_opendir
 
 ```php
-int smbclient_opendir ( resource $state, string $uri )
+resource smbclient_opendir ( resource $state, string $uri )
 ```
 
 Opens the given directory for reading with `smbclient_readdir`.
 
-Returns either an integer directory handle, or `false` on failure.
-The directory handle should be closed after use with `smbclient_closedir`.
+Returns either a directory resource, or `false` on failure.
+The directory resource should be closed after use with `smbclient_closedir`.
 
 ### smbclient_readdir
 
 ```php
-array smbclient_readdir ( resource $state, int $dirhandle )
+array smbclient_readdir ( resource $state, resource $dir )
 ```
 
-Reads the next entry from the given directory handle obtained with `smbclient_opendir`.
+Reads the next entry from the given directory resource obtained with `smbclient_opendir`.
 Call this in a `while` loop to read all entries in the directory.
 
 Returns an array with details for the directory entry on success, or `false` on
@@ -142,10 +142,10 @@ Comment and name are passed through from libsmbclient.
 ### smbclient_closedir
 
 ```php
-bool smbclient_closedir ( resource $state, int $dirhandle )
+bool smbclient_closedir ( resource $state, resource $dir )
 ```
 
-Closes a directory handle obtained with `smbclient_opendir`.
+Closes a directory resource obtained with `smbclient_opendir`.
 Returns `true` on success, `false` on failure.
 
 ### smbclient_rename
