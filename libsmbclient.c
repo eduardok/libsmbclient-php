@@ -206,6 +206,64 @@ PHP_FUNCTION(smbclient_opendir)
 	RETURN_FALSE;
 }
 
+PHP_FUNCTION(smbclient_readdir)
+{
+	int dirhandle;
+	struct smbc_dirent *dirent;
+	char *type;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+		WRONG_PARAM_COUNT;
+	}
+	errno = 0;
+	dirent = smbc_readdir(dirhandle);
+	if (dirent == NULL) {
+		switch (errno) {
+			case 0: RETURN_FALSE;
+			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Not a directory handle", dirhandle); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %d: smbc_init not called", dirhandle); break;
+			default: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+		}
+		RETURN_FALSE;
+	}
+	if (array_init(return_value) != SUCCESS) {
+		php_error(E_WARNING, "Couldn't initialize array");
+		RETURN_FALSE;
+	}
+	switch (dirent->smbc_type) {
+		case SMBC_WORKGROUP: type = "workgroup"; break;
+		case SMBC_SERVER: type = "server"; break;
+		case SMBC_FILE_SHARE: type = "file share"; break;
+		case SMBC_PRINTER_SHARE: type = "printer share"; break;
+		case SMBC_COMMS_SHARE: type = "communication share"; break;
+		case SMBC_IPC_SHARE: type = "IPC share"; break;
+		case SMBC_DIR: type = "directory"; break;
+		case SMBC_FILE: type = "file"; break;
+		case SMBC_LINK: type = "link"; break;
+		default: type = "unknown"; break;
+	}
+	add_assoc_string(return_value, "type", type, 1);
+	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen, 1);
+	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
+}
+
+PHP_FUNCTION(smbclient_closedir)
+{
+	int dirhandle, retval;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+		WRONG_PARAM_COUNT;
+	}
+	if (smbc_closedir(dirhandle) == 0) {
+		RETURN_TRUE;
+	}
+	switch (errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Not a directory handle", dirhandle); break;
+		default: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+	}
+	RETURN_FALSE;
+}
+
 PHP_FUNCTION(smbclient_rename)
 {
 	char *ourl, *nurl;
@@ -257,30 +315,6 @@ PHP_FUNCTION(smbclient_unlink)
 	RETURN_FALSE;
 }
 
-PHP_FUNCTION(smbclient_rmdir)
-{
-	char *url;
-	int url_len;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
-	}
-	if (smbc_rmdir(url) == 0) {
-		RETURN_TRUE;
-	}
-	hide_password(url, url_len);
-	switch (errno) {
-		case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
-		case ENOENT: php_error(E_WARNING, "Couldn't delete %s: Path does not exist", url); break;
-		case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
-		case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
-		case ENOTEMPTY: php_error(E_WARNING, "Couldn't delete %s: It is not empty", url); break;
-		default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
-	}
-	RETURN_FALSE;
-}
-
 PHP_FUNCTION(smbclient_mkdir)
 {
 	char *path = NULL;
@@ -305,62 +339,28 @@ PHP_FUNCTION(smbclient_mkdir)
 	RETURN_FALSE;
 }
 
-PHP_FUNCTION(smbclient_closedir)
+PHP_FUNCTION(smbclient_rmdir)
 {
-	int dirhandle, retval;
+	char *url;
+	int url_len;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
 		WRONG_PARAM_COUNT;
 	}
-	if (smbc_closedir(dirhandle) == 0) {
+	if (smbc_rmdir(url) == 0) {
 		RETURN_TRUE;
 	}
+	hide_password(url, url_len);
 	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Not a directory handle", dirhandle); break;
-		default: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+		case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
+		case ENOENT: php_error(E_WARNING, "Couldn't delete %s: Path does not exist", url); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
+		case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
+		case ENOTEMPTY: php_error(E_WARNING, "Couldn't delete %s: It is not empty", url); break;
+		default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
-}
-
-PHP_FUNCTION(smbclient_readdir)
-{
-	int dirhandle;
-	struct smbc_dirent *dirent;
-	char *type;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
-		WRONG_PARAM_COUNT;
-	}
-	errno = 0;
-	dirent = smbc_readdir(dirhandle);
-	if (dirent == NULL) {
-		switch (errno) {
-			case 0: RETURN_FALSE;
-			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Not a directory handle", dirhandle); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %d: smbc_init not called", dirhandle); break;
-			default: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
-		}
-		RETURN_FALSE;
-	}
-	if (array_init(return_value) != SUCCESS) {
-		php_error(E_WARNING, "Couldn't initialize array");
-		RETURN_FALSE;
-	}
-	switch (dirent->smbc_type) {
-		case SMBC_WORKGROUP: type = "workgroup"; break;
-		case SMBC_SERVER: type = "server"; break;
-		case SMBC_FILE_SHARE: type = "file share"; break;
-		case SMBC_PRINTER_SHARE: type = "printer share"; break;
-		case SMBC_COMMS_SHARE: type = "communication share"; break;
-		case SMBC_IPC_SHARE: type = "IPC share"; break;
-		case SMBC_DIR: type = "directory"; break;
-		case SMBC_FILE: type = "file"; break;
-		case SMBC_LINK: type = "link"; break;
-		default: type = "unknown"; break;
-	}
-	add_assoc_string(return_value, "type", type, 1);
-	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen, 1);
-	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
 }
 
 PHP_FUNCTION(smbclient_stat)
