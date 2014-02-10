@@ -94,6 +94,16 @@ bool smbclient_state_free ( resource $state )
 Release the state resource passed to it.
 Returns `true` on success, `false` on failure.
 
+### smbclient_state_errno
+
+```php
+int smbclient_state_errno ( resource $state )
+```
+
+Returns the error number of the last error encountered by libsmbclient.
+Returns 0 on failure (invalid resource) or if no error has yet occurred for this resource.
+The numbers returned are the standard Posix constants as returned by libsmbclient itself, so check your system's `errno.h` or `man errno` for documentation.
+
 ### smbclient_opendir
 
 ```php
