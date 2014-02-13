@@ -13,6 +13,7 @@
    | license@php.net so we can mail you a copy immediately.               |
    +----------------------------------------------------------------------+
    | Authors: Matthew Sachs <matthewg@zevils.com>                         |
+   |          Alfred Klomp <git@alfredklomp.com>                          |
    +----------------------------------------------------------------------+
 */
  

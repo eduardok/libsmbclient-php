@@ -14,6 +14,7 @@
    +----------------------------------------------------------------------+
    | Authors: Matthew Sachs <matthewg@zevils.com>                         |
    |          Eduardo Bacchi Kienetz <eduardo@kienetz.com>                |
+   |          Alfred Klomp <git@alfredklomp.com>                          |
    +----------------------------------------------------------------------+
  */
 
@@ -28,7 +29,7 @@
 
 #include <libsmbclient.h>
 
-#define LIBSMBCLIENT_VERSION	"0.2"
+#define LIBSMBCLIENT_VERSION	"0.3"
 
 #ifdef ZTS
 int libsmbclient_globals_id;
