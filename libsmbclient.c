@@ -25,6 +25,7 @@
 #endif
 
 #include "php.h"
+#include "ext/standard/info.h"
 #include "php_libsmbclient.h"
 
 #include <libsmbclient.h>
