@@ -420,17 +420,58 @@ PHP_FUNCTION(smbclient_stat)
 	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
 }
 
+static int
+flagstring_to_smbflags (char *flags, int flags_len, int *retval)
+{
+	/* Returns 0 on failure, or 1 on success with *retval filled. */
+	if (flags_len != 1 && flags_len != 2) {
+		goto err;
+	}
+	if (flags_len == 2 && flags[1] != '+') {
+		goto err;
+	}
+	/* For both lengths, add the "core business" flags.
+	 * See php_stream_parse_fopen_modes() in PHP's /main/streams/plain_wrapper.c
+	 * for how PHP's native fopen() translates these flags: */
+	switch (flags[0]) {
+		case 'r': *retval = 0; break;
+		case 'w': *retval = O_CREAT | O_TRUNC; break;
+		case 'a': *retval = O_CREAT | O_APPEND; break;
+		case 'x': *retval = O_CREAT | O_EXCL; break;
+		case 'c': *retval = O_CREAT; break;
+		default: goto err;
+	}
+	/* If length is 1, enforce read-only or write-only: */
+	if (flags_len == 1) {
+		*retval |= (*retval == 0) ? O_RDONLY : O_WRONLY;
+		return 1;
+	}
+	/* Length is 2 and this is a '+' mode, so read/write everywhere: */
+	*retval |= O_RDWR;
+	return 1;
+
+err:	php_error(E_WARNING, "Invalid flag string");
+	return 0;
+}
+
 PHP_FUNCTION(smbclient_open)
 {
-	char *file;
-	int file_len;
+	char *file, *flags;
+	int file_len, flags_len;
 	int handle;
+	int smbflags;
 	long mode = 0666;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &file, &file_len, &flags, &flags_len, &mode) == FAILURE) {
 		return;
 	}
-	if ((handle = smbc_open(file, O_RDONLY, mode)) >= 0) {
+	/* The flagstring is in the same format as the native fopen() uses, so
+	 * one of the characters r, w, a, x, c, optionally followed by a plus.
+	 * Need to translate this to an integer value for smbc_open: */
+	if (flagstring_to_smbflags(flags, flags_len, &smbflags) == 0) {
+		RETURN_FALSE;
+	}
+	if ((handle = smbc_open(file, smbflags, mode)) >= 0) {
 		RETURN_LONG(handle);
 	}
 	hide_password(file, file_len);
