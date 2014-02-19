@@ -221,9 +221,9 @@ PHP_FUNCTION(smbclient_readdir)
 	if (dirent == NULL) {
 		switch (errno) {
 			case 0: RETURN_FALSE;
-			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Not a directory handle", dirhandle); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %d: smbc_init not called", dirhandle); break;
-			default: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Not a directory handle", dirhandle); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: smbc_init not called", dirhandle); break;
+			default: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -259,8 +259,8 @@ PHP_FUNCTION(smbclient_closedir)
 		RETURN_TRUE;
 	}
 	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Not a directory handle", dirhandle); break;
-		default: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Not a directory handle", dirhandle); break;
+		default: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -493,10 +493,10 @@ PHP_FUNCTION(smbclient_read)
 	}
 	efree(buf);
 	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
-		default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
+		case EISDIR: php_error(E_WARNING, "Couldn't read from %ld: Is a directory", file); break;
+		case EBADF: php_error(E_WARNING, "Couldn't read from %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't read from %ld: Object not suitable for reading or bad buffer", file); break;
+		default: php_error(E_WARNING, "Couldn't read from %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -519,10 +519,10 @@ PHP_FUNCTION(smbclient_write)
 		RETURN_LONG(nbytes);
 	}
 	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
-		default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
+		case EISDIR: php_error(E_WARNING, "Couldn't read from %ld: Is a directory", file); break;
+		case EBADF: php_error(E_WARNING, "Couldn't read from %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't read from %ld: Object not suitable for reading or bad buffer", file); break;
+		default: php_error(E_WARNING, "Couldn't read from %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -538,9 +538,9 @@ PHP_FUNCTION(smbclient_close)
 		RETURN_TRUE;
 	}
 	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close %d: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't close %d: smbc_init not called", file); break;
-		default: php_error(E_WARNING, "Couldn't close %d: Unknown error (%d)", file, errno); break;
+		case EBADF: php_error(E_WARNING, "Couldn't close %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't close %ld: smbc_init not called", file); break;
+		default: php_error(E_WARNING, "Couldn't close %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
