@@ -545,19 +545,26 @@ PHP_FUNCTION(smbclient_read)
 
 PHP_FUNCTION(smbclient_write)
 {
-	long file, count;
+	long file, count = 0;
 	int str_len;
 	char * str;
+	size_t nwrite;
 	ssize_t nbytes;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls|l", &file, &str, &str_len, &count) == FAILURE) {
 		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
 		RETURN_FALSE;
 	}
-	if ((nbytes = smbc_write(file, str, count)) >= 0) {
+	if (count == 0 || count > str_len) {
+		nwrite = str_len;
+	}
+	else {
+		nwrite = count;
+	}
+	if ((nbytes = smbc_write(file, str, nwrite)) >= 0) {
 		RETURN_LONG(nbytes);
 	}
 	switch (errno) {
