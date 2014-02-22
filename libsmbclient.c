@@ -189,7 +189,7 @@ PHP_FUNCTION(smbclient_opendir)
 	int path_len, dirhandle;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &path, &path_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if ((dirhandle = smbc_opendir(path)) >= 0) {
 		RETURN_LONG(dirhandle);
@@ -215,7 +215,7 @@ PHP_FUNCTION(smbclient_readdir)
 	char *type;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	errno = 0;
 	dirent = smbc_readdir(dirhandle);
@@ -254,7 +254,7 @@ PHP_FUNCTION(smbclient_closedir)
 	long dirhandle;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_closedir(dirhandle) == 0) {
 		RETURN_TRUE;
@@ -272,7 +272,7 @@ PHP_FUNCTION(smbclient_rename)
 	int ourl_len, nurl_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &ourl, &ourl_len, &nurl, &nurl_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_rename(ourl, nurl) == 0) {
 		RETURN_TRUE;
@@ -299,7 +299,7 @@ PHP_FUNCTION(smbclient_unlink)
 	int url_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_unlink(url) == 0) {
 		RETURN_TRUE;
@@ -324,7 +324,7 @@ PHP_FUNCTION(smbclient_mkdir)
 	long mode = 0777;	/* Same as PHP's native mkdir() */
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &path, &path_len, &mode) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_mkdir(path, (mode_t)mode) == 0) {
 		RETURN_TRUE;
@@ -347,7 +347,7 @@ PHP_FUNCTION(smbclient_rmdir)
 	int url_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_rmdir(url) == 0) {
 		RETURN_TRUE;
@@ -372,7 +372,7 @@ PHP_FUNCTION(smbclient_stat)
 	int retval, file_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	retval = smbc_stat(file, &statbuf);
 	if (retval < 0) {
@@ -428,7 +428,7 @@ PHP_FUNCTION(smbclient_open)
 	long mode = 0666;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if ((handle = smbc_open(file, O_RDONLY, mode)) >= 0) {
 		RETURN_LONG(handle);
@@ -456,7 +456,7 @@ PHP_FUNCTION(smbclient_creat)
 	long mode = 0666;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if ((handle = smbc_creat(file, (mode_t)mode)) >= 0) {
 		RETURN_LONG(handle);
@@ -481,7 +481,7 @@ PHP_FUNCTION(smbclient_read)
 	ssize_t nbytes;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
@@ -510,7 +510,7 @@ PHP_FUNCTION(smbclient_write)
 	ssize_t nbytes;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
@@ -533,7 +533,7 @@ PHP_FUNCTION(smbclient_close)
 	long file;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_close(file) == 0) {
 		RETURN_TRUE;
