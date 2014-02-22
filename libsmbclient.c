@@ -569,10 +569,11 @@ PHP_FUNCTION(smbclient_write)
 		RETURN_LONG(nbytes);
 	}
 	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't read from %ld: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't read from %ld: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't read from %ld: Object not suitable for reading or bad buffer", file); break;
-		default: php_error(E_WARNING, "Couldn't read from %ld: Unknown error (%d)", file, errno); break;
+		case EISDIR: php_error(E_WARNING, "Couldn't write to %ld: Is a directory", file); break;
+		case EBADF: php_error(E_WARNING, "Couldn't write to %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't write to %ld: Object not suitable for reading or bad buffer", file); break;
+		case EACCES: php_error(E_WARNING, "Couldn't write to %ld: Permission denied", file); break;
+		default: php_error(E_WARNING, "Couldn't write to %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
