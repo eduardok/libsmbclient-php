@@ -312,6 +312,7 @@ PHP_FUNCTION(smbclient_unlink)
 		case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
 		case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
 		case EISDIR: php_error(E_WARNING, "Couldn't delete %s: It is a Directory (use rmdir instead)", url); break;
+		case EBUSY: php_error(E_WARNING, "Couldn't delete %s: Device or resource busy", url); break;
 		default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
