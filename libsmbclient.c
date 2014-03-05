@@ -25,6 +25,7 @@
 #endif
 
 #include "php.h"
+#include "ext/standard/info.h"
 #include "php_libsmbclient.h"
 
 #include <libsmbclient.h>
@@ -188,7 +189,7 @@ PHP_FUNCTION(smbclient_opendir)
 	int path_len, dirhandle;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &path, &path_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if ((dirhandle = smbc_opendir(path)) >= 0) {
 		RETURN_LONG(dirhandle);
@@ -214,16 +215,16 @@ PHP_FUNCTION(smbclient_readdir)
 	char *type;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	errno = 0;
 	dirent = smbc_readdir(dirhandle);
 	if (dirent == NULL) {
 		switch (errno) {
 			case 0: RETURN_FALSE;
-			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Not a directory handle", dirhandle); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %d: smbc_init not called", dirhandle); break;
-			default: php_error(E_WARNING, "Couldn't read SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Not a directory handle", dirhandle); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: smbc_init not called", dirhandle); break;
+			default: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -253,14 +254,14 @@ PHP_FUNCTION(smbclient_closedir)
 	long dirhandle;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_closedir(dirhandle) == 0) {
 		RETURN_TRUE;
 	}
 	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Not a directory handle", dirhandle); break;
-		default: php_error(E_WARNING, "Couldn't close SMB directory handle %d: Unknown error (%d)", dirhandle, errno); break;
+		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Not a directory handle", dirhandle); break;
+		default: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -271,7 +272,7 @@ PHP_FUNCTION(smbclient_rename)
 	int ourl_len, nurl_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &ourl, &ourl_len, &nurl, &nurl_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_rename(ourl, nurl) == 0) {
 		RETURN_TRUE;
@@ -298,7 +299,7 @@ PHP_FUNCTION(smbclient_unlink)
 	int url_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_unlink(url) == 0) {
 		RETURN_TRUE;
@@ -311,6 +312,7 @@ PHP_FUNCTION(smbclient_unlink)
 		case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
 		case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
 		case EISDIR: php_error(E_WARNING, "Couldn't delete %s: It is a Directory (use rmdir instead)", url); break;
+		case EBUSY: php_error(E_WARNING, "Couldn't delete %s: Device or resource busy", url); break;
 		default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
@@ -323,7 +325,7 @@ PHP_FUNCTION(smbclient_mkdir)
 	long mode = 0777;	/* Same as PHP's native mkdir() */
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &path, &path_len, &mode) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_mkdir(path, (mode_t)mode) == 0) {
 		RETURN_TRUE;
@@ -346,7 +348,7 @@ PHP_FUNCTION(smbclient_rmdir)
 	int url_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_rmdir(url) == 0) {
 		RETURN_TRUE;
@@ -371,7 +373,7 @@ PHP_FUNCTION(smbclient_stat)
 	int retval, file_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	retval = smbc_stat(file, &statbuf);
 	if (retval < 0) {
@@ -419,17 +421,58 @@ PHP_FUNCTION(smbclient_stat)
 	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
 }
 
+static int
+flagstring_to_smbflags (char *flags, int flags_len, int *retval)
+{
+	/* Returns 0 on failure, or 1 on success with *retval filled. */
+	if (flags_len != 1 && flags_len != 2) {
+		goto err;
+	}
+	if (flags_len == 2 && flags[1] != '+') {
+		goto err;
+	}
+	/* For both lengths, add the "core business" flags.
+	 * See php_stream_parse_fopen_modes() in PHP's /main/streams/plain_wrapper.c
+	 * for how PHP's native fopen() translates these flags: */
+	switch (flags[0]) {
+		case 'r': *retval = 0; break;
+		case 'w': *retval = O_CREAT | O_TRUNC; break;
+		case 'a': *retval = O_CREAT | O_APPEND; break;
+		case 'x': *retval = O_CREAT | O_EXCL; break;
+		case 'c': *retval = O_CREAT; break;
+		default: goto err;
+	}
+	/* If length is 1, enforce read-only or write-only: */
+	if (flags_len == 1) {
+		*retval |= (*retval == 0) ? O_RDONLY : O_WRONLY;
+		return 1;
+	}
+	/* Length is 2 and this is a '+' mode, so read/write everywhere: */
+	*retval |= O_RDWR;
+	return 1;
+
+err:	php_error(E_WARNING, "Invalid flag string");
+	return 0;
+}
+
 PHP_FUNCTION(smbclient_open)
 {
-	char *file;
-	int file_len;
+	char *file, *flags;
+	int file_len, flags_len;
 	int handle;
+	int smbflags;
 	long mode = 0666;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
-		WRONG_PARAM_COUNT;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &file, &file_len, &flags, &flags_len, &mode) == FAILURE) {
+		return;
 	}
-	if ((handle = smbc_open(file, O_RDONLY, mode)) >= 0) {
+	/* The flagstring is in the same format as the native fopen() uses, so
+	 * one of the characters r, w, a, x, c, optionally followed by a plus.
+	 * Need to translate this to an integer value for smbc_open: */
+	if (flagstring_to_smbflags(flags, flags_len, &smbflags) == 0) {
+		RETURN_FALSE;
+	}
+	if ((handle = smbc_open(file, smbflags, mode)) >= 0) {
 		RETURN_LONG(handle);
 	}
 	hide_password(file, file_len);
@@ -455,7 +498,7 @@ PHP_FUNCTION(smbclient_creat)
 	long mode = 0666;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if ((handle = smbc_creat(file, (mode_t)mode)) >= 0) {
 		RETURN_LONG(handle);
@@ -480,7 +523,7 @@ PHP_FUNCTION(smbclient_read)
 	ssize_t nbytes;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
@@ -493,36 +536,44 @@ PHP_FUNCTION(smbclient_read)
 	}
 	efree(buf);
 	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
-		default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
+		case EISDIR: php_error(E_WARNING, "Couldn't read from %ld: Is a directory", file); break;
+		case EBADF: php_error(E_WARNING, "Couldn't read from %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't read from %ld: Object not suitable for reading or bad buffer", file); break;
+		default: php_error(E_WARNING, "Couldn't read from %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
 
 PHP_FUNCTION(smbclient_write)
 {
-	long file, count;
+	long file, count = 0;
 	int str_len;
 	char * str;
+	size_t nwrite;
 	ssize_t nbytes;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lsl", &file, &str, &str_len, &count) == FAILURE) {
-		WRONG_PARAM_COUNT;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls|l", &file, &str, &str_len, &count) == FAILURE) {
+		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
 		RETURN_FALSE;
 	}
-	if ((nbytes = smbc_write(file, str, count)) >= 0) {
+	if (count == 0 || count > str_len) {
+		nwrite = str_len;
+	}
+	else {
+		nwrite = count;
+	}
+	if ((nbytes = smbc_write(file, str, nwrite)) >= 0) {
 		RETURN_LONG(nbytes);
 	}
 	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't read from %d: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't read from %d: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't read from %d: Object not suitable for reading or bad buffer", file); break;
-		default: php_error(E_WARNING, "Couldn't read from %d: Unknown error (%d)", file, errno); break;
+		case EISDIR: php_error(E_WARNING, "Couldn't write to %ld: Is a directory", file); break;
+		case EBADF: php_error(E_WARNING, "Couldn't write to %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't write to %ld: Object not suitable for reading or bad buffer", file); break;
+		case EACCES: php_error(E_WARNING, "Couldn't write to %ld: Permission denied", file); break;
+		default: php_error(E_WARNING, "Couldn't write to %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -532,15 +583,15 @@ PHP_FUNCTION(smbclient_close)
 	long file;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE) {
-		WRONG_PARAM_COUNT;
+		return;
 	}
 	if (smbc_close(file) == 0) {
 		RETURN_TRUE;
 	}
 	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close %d: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't close %d: smbc_init not called", file); break;
-		default: php_error(E_WARNING, "Couldn't close %d: Unknown error (%d)", file, errno); break;
+		case EBADF: php_error(E_WARNING, "Couldn't close %ld: Not a valid file descriptor or not open for reading", file); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't close %ld: smbc_init not called", file); break;
+		default: php_error(E_WARNING, "Couldn't close %ld: Unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
