@@ -44,6 +44,25 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 }
 #endif
 
+typedef struct _php_libsmbclient_state
+{
+	SMBCCTX *ctx;
+	char *wrkg;
+	char *user;
+	char *pass;
+	int wrkglen;
+	int userlen;
+	int passlen;
+	int err;
+}
+php_libsmbclient_state;
+
+#define PHP_LIBSMBCLIENT_STATE_NAME "smbclient state"
+#define PHP_LIBSMBCLIENT_FILE_NAME "smbclient file"
+
+int le_libsmbclient_state;
+int le_libsmbclient_file;
+
 static char *
 find_char (char *start, char *last, char q)
 {
@@ -108,6 +127,10 @@ hide_password (char *url, int len)
 
 static zend_function_entry libsmbclient_functions[] =
 {
+	PHP_FE(smbclient_state_new, NULL)
+	PHP_FE(smbclient_state_init, NULL)
+	PHP_FE(smbclient_state_errno, NULL)
+	PHP_FE(smbclient_state_free, NULL)
 	PHP_FE(smbclient_opendir, NULL)
 	PHP_FE(smbclient_readdir, NULL)
 	PHP_FE(smbclient_closedir, NULL)
@@ -141,10 +164,80 @@ zend_module_entry libsmbclient_module_entry =
 ZEND_GET_MODULE(libsmbclient)
 #endif
 
+static void
+auth_copy (char *dst, char *src, size_t srclen, size_t maxlen)
+{
+	if (dst == NULL || maxlen == 0) {
+		return;
+	}
+	if (src == NULL || srclen == 0) {
+		*dst = '\0';
+		return;
+	}
+	if (srclen < maxlen) {
+		memcpy(dst, src, srclen);
+		dst[srclen] = '\0';
+		return;
+	}
+	memcpy(dst, src, maxlen - 1);
+	dst[maxlen - 1] = '\0';
+}
 
 static void
-smbclient_auth_func (const char *server, const char *share, char *workgroup, int wglen, char *username, int userlen, char *password, int passlen)
+smbclient_auth_func (SMBCCTX *ctx, const char *server, const char *share, char *wrkg, int wrkglen, char *user, int userlen, char *pass, int passlen)
 {
+	/* Given context, server and share, return workgroup, username and password.
+	 * String lengths are the max allowable lengths. */
+
+	php_libsmbclient_state *state;
+
+	if (ctx == NULL || (state = smbc_getOptionUserData(ctx)) == NULL) {
+		return;
+	}
+	auth_copy(wrkg, state->wrkg, (size_t)state->wrkglen, (size_t)wrkglen);
+	auth_copy(user, state->user, (size_t)state->userlen, (size_t)userlen);
+	auth_copy(pass, state->pass, (size_t)state->passlen, (size_t)passlen);
+}
+
+static void
+smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	php_libsmbclient_state *state = (php_libsmbclient_state *)rsrc->ptr;
+
+	/* TODO: if smbc_free_context() returns 0, PHP will leak the handle: */
+	if (state->ctx != NULL && smbc_free_context(state->ctx, 1) != 0) {
+		switch (errno) {
+			case EBUSY: php_error(E_WARNING, "Couldn't destroy SMB context: connection in use"); break;
+			case EBADF: php_error(E_WARNING, "Couldn't destroy SMB context: invalid handle"); break;
+			default: php_error(E_WARNING, "Couldn't destroy SMB context: unknown error"); break;
+		}
+	}
+	if (state->wrkg != NULL) {
+		memset(state->wrkg, 0, state->wrkglen);
+		efree(state->wrkg);
+	}
+	if (state->user != NULL) {
+		memset(state->user, 0, state->userlen);
+		efree(state->user);
+	}
+	if (state->pass != NULL) {
+		memset(state->pass, 0, state->passlen);
+		efree(state->pass);
+	}
+	efree(state);
+}
+
+static void
+smbclient_file_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	/* Because libsmbclient's file/dir close functions require a pointer to
+	 * a context which we don't have, we cannot reliably destroy a file
+	 * resource. One way of obtaining the context pointer could be to save
+	 * it in a structure along with the file context, but the pointer could
+	 * grow stale or otherwise spark a race condition. So it seems that the
+	 * best we can do is nothing. The PHP programmer can either manually
+	 * free the file resources, or wait for them to be cleaned up when the
+	 * associated context is destroyed. */
 }
 
 PHP_MINIT_FUNCTION(smbclient)
@@ -153,16 +246,10 @@ PHP_MINIT_FUNCTION(smbclient)
 	ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
 	#endif
 
-	if (smbc_init(smbclient_auth_func, 0) == 0) {
-		return SUCCESS;
-	}
-	switch (errno) {
-		case ENOMEM: php_error(E_WARNING, "Couldn't initialize libsmbclient: Out of memory."); break;
-		case ENOENT: php_error(E_WARNING, "Couldn't initialize libsmbclient: The smb.conf file would not load.  It must be located in ~/.smb/ (probably /root/.smb) ."); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't initialize libsmbclient: Invalid parameter."); break;
-		default: php_error(E_WARNING, "Couldn't initialize libsmbclient: Unknown error (%d).", errno); break;
-	}
-	return FAILURE;	
+	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
+	le_libsmbclient_file = zend_register_list_destructors_ex(smbclient_file_dtor, NULL, PHP_LIBSMBCLIENT_FILE_NAME, module_number);
+
+	return SUCCESS;
 }
 
 PHP_RINIT_FUNCTION(smbclient)
@@ -183,19 +270,188 @@ PHP_MINFO_FUNCTION(smbclient)
 	php_info_print_table_end();
 }
 
+PHP_FUNCTION(smbclient_state_new)
+{
+	SMBCCTX *ctx;
+	php_libsmbclient_state *state;
+
+	if ((ctx = smbc_new_context()) == NULL) {
+		switch (errno) {
+			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
+			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error %d", errno); break;
+		};
+		RETURN_FALSE;
+	}
+	state = emalloc(sizeof(php_libsmbclient_state));
+	state->ctx = ctx;
+	state->wrkg = NULL;
+	state->user = NULL;
+	state->pass = NULL;
+	state->wrkglen = 0;
+	state->userlen = 0;
+	state->passlen = 0;
+	state->err = 0;
+
+	smbc_setFunctionAuthDataWithContext(state->ctx, smbclient_auth_func);
+
+	/* Must also save a pointer to the state object inside the context, to
+	 * find the state from the context in the auth function: */
+	smbc_setOptionUserData(ctx, (void *)state);
+
+	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
+}
+
+static int
+ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
+{
+	if (*dest != NULL) {
+		efree(*dest);
+		*dest = NULL;
+	}
+	*destlen = 0;
+
+	if (z == NULL) {
+		return 1;
+	}
+	switch (Z_TYPE_P(z))
+	{
+		case IS_NULL:
+			return 1;
+
+		case IS_BOOL:
+			if (Z_LVAL_P(z) == 1) {
+				php_error(E_WARNING, "invalid value for %s", varname);
+				return 0;
+			}
+			return 1;
+
+		case IS_STRING:
+			*destlen = Z_STRLEN_P(z);
+			*dest = estrndup(Z_STRVAL_P(z), *destlen);
+			return 1;
+
+		default:
+			php_error(E_WARNING, "invalid datatype for %s", varname);
+			return 0;
+	}
+}
+
+PHP_FUNCTION(smbclient_state_init)
+{
+	SMBCCTX *ctx;
+	zval *zstate;
+	zval *zwrkg = NULL;
+	zval *zuser = NULL;
+	zval *zpass = NULL;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|zzz", &zstate, &zwrkg, &zuser, &zpass) != SUCCESS) {
+		RETURN_FALSE;
+	}
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+
+	if (state->ctx == NULL) {
+		php_error(E_WARNING, "Couldn't init SMB context: context is null");
+		RETURN_FALSE;
+	}
+	if (ctx_init_getauth(zwrkg, &state->wrkg, &state->wrkglen, "workgroup") == 0) {
+		RETURN_FALSE;
+	}
+	if (ctx_init_getauth(zuser, &state->user, &state->userlen, "username") == 0) {
+		RETURN_FALSE;
+	}
+	if (ctx_init_getauth(zpass, &state->pass, &state->passlen, "password") == 0) {
+		RETURN_FALSE;
+	}
+	if ((ctx = smbc_init_context(state->ctx)) != NULL) {
+		state->ctx = ctx;
+		RETURN_TRUE;
+	}
+	switch (state->err = errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't init SMB context: null context given"); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't init SMB context: insufficient memory"); break;
+		case ENOENT: php_error(E_WARNING, "Couldn't init SMB context: cannot load smb.conf"); break;
+		default: php_error(E_WARNING, "Couldn't init SMB context: unknown error %d", errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_state_errno)
+{
+	zval *zstate;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
+		RETURN_LONG(0);
+	}
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	RETURN_LONG(state->err);
+}
+
+PHP_FUNCTION(smbclient_state_free)
+{
+	zval *zstate;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
+		RETURN_FALSE;
+	}
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+
+	if (state->ctx == NULL) {
+		zend_list_delete(Z_LVAL_P(zstate));
+		RETURN_TRUE;
+	}
+	if (smbc_free_context(state->ctx, 1) == 0) {
+		state->ctx = NULL;
+		zend_list_delete(Z_LVAL_P(zstate));
+		RETURN_TRUE;
+	}
+	switch (state->err = errno) {
+		case EBUSY: php_error(E_WARNING, "Couldn't destroy smbclient state: connection in use"); break;
+		case EBADF: php_error(E_WARNING, "Couldn't destroy smbclient state: invalid handle"); break;
+		default: php_error(E_WARNING, "Couldn't destroy smbclient state: unknown error"); break;
+	}
+	RETURN_FALSE;
+}
+
+#define STATE_FROM_ZSTATE \
+	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state); \
+	if (state == NULL || state->ctx == NULL) { \
+		php_error(E_WARNING, PHP_LIBSMBCLIENT_STATE_NAME " not found"); \
+		RETURN_FALSE; \
+	}
+
+#define FILE_FROM_ZFILE \
+	ZEND_FETCH_RESOURCE(file, SMBCFILE *, &zfile, -1, PHP_LIBSMBCLIENT_FILE_NAME, le_libsmbclient_file); \
+	if (file == NULL) { \
+		php_error(E_WARNING, PHP_LIBSMBCLIENT_FILE_NAME " not found"); \
+		RETURN_FALSE; \
+	}
+
 PHP_FUNCTION(smbclient_opendir)
 {
 	char *path;
-	int path_len, dirhandle;
+	int path_len;
+	zval *zstate;
+	SMBCFILE *dir;
+	smbc_opendir_fn smbc_opendir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &path, &path_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &path, &path_len) == FAILURE) {
 		return;
 	}
-	if ((dirhandle = smbc_opendir(path)) >= 0) {
-		RETURN_LONG(dirhandle);
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_opendir = smbc_getFunctionOpendir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((dir = smbc_opendir(state->ctx, path)) != NULL) {
+		ZEND_REGISTER_RESOURCE(return_value, dir, le_libsmbclient_file);
+		return;
 	}
 	hide_password(path, path_len);
-	switch (errno) {
+	switch (state->err = errno) {
 		case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", path); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", path); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't open SMB directory %s: Path does not exist", path); break;
@@ -210,21 +466,30 @@ PHP_FUNCTION(smbclient_opendir)
 
 PHP_FUNCTION(smbclient_readdir)
 {
-	long dirhandle;
 	struct smbc_dirent *dirent;
 	char *type;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_readdir_fn smbc_readdir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
 		return;
 	}
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_readdir = smbc_getFunctionReaddir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
 	errno = 0;
-	dirent = smbc_readdir(dirhandle);
-	if (dirent == NULL) {
-		switch (errno) {
+	if ((dirent = smbc_readdir(state->ctx, file)) == NULL) {
+		switch (state->err = errno) {
 			case 0: RETURN_FALSE;
-			case EBADF: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Not a directory handle", dirhandle); break;
-			case EINVAL: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: smbc_init not called", dirhandle); break;
-			default: php_error(E_WARNING, "Couldn't read SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
+			case EBADF: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory resource"); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": State resource not initialized"); break;
+			default: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -251,17 +516,28 @@ PHP_FUNCTION(smbclient_readdir)
 
 PHP_FUNCTION(smbclient_closedir)
 {
-	long dirhandle;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_closedir_fn smbc_closedir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dirhandle) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
 		return;
 	}
-	if (smbc_closedir(dirhandle) == 0) {
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_closedir = smbc_getFunctionClosedir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_closedir(state->ctx, file) == 0) {
+		zend_list_delete(Z_LVAL_P(zfile));
 		RETURN_TRUE;
 	}
-	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Not a directory handle", dirhandle); break;
-		default: php_error(E_WARNING, "Couldn't close SMB directory handle %ld: Unknown error (%d)", dirhandle, errno); break;
+	switch (state->err = errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory resource"); break;
+		default: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -270,15 +546,34 @@ PHP_FUNCTION(smbclient_rename)
 {
 	char *ourl, *nurl;
 	int ourl_len, nurl_len;
+	zval *zstate_old;
+	zval *zstate_new;
+	smbc_rename_fn smbc_rename;
+	php_libsmbclient_state *state_old;
+	php_libsmbclient_state *state_new;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &ourl, &ourl_len, &nurl, &nurl_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsrs", &zstate_old, &ourl, &ourl_len, &zstate_new, &nurl, &nurl_len) == FAILURE) {
 		return;
 	}
-	if (smbc_rename(ourl, nurl) == 0) {
+	ZEND_FETCH_RESOURCE(state_old, php_libsmbclient_state *, &zstate_old, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	ZEND_FETCH_RESOURCE(state_new, php_libsmbclient_state *, &zstate_new, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+
+	if (state_old == NULL || state_old->ctx == NULL) {
+		php_error(E_WARNING, "old " PHP_LIBSMBCLIENT_STATE_NAME " is null");
+		RETURN_FALSE;
+	}
+	if (state_new == NULL || state_new->ctx == NULL) {
+		php_error(E_WARNING, "new " PHP_LIBSMBCLIENT_STATE_NAME " is null");
+		RETURN_FALSE;
+	}
+	if ((smbc_rename = smbc_getFunctionRename(state_old->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_rename(state_old->ctx, ourl, state_new->ctx, nurl) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(ourl, ourl_len);
-	switch (errno) {
+	switch (state_old->err = errno) {
 		case EISDIR: php_error(E_WARNING, "Couldn't rename SMB directory %s: existing url is not a directory", ourl); break;
 		case EACCES: php_error(E_WARNING, "Couldn't open SMB directory %s: Permission denied", ourl); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't open SMB directory %s: Invalid URL", ourl); break;
@@ -297,15 +592,23 @@ PHP_FUNCTION(smbclient_unlink)
 {
 	char *url;
 	int url_len;
+	zval *zstate;
+	smbc_unlink_fn smbc_unlink;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &url, &url_len) == FAILURE) {
 		return;
 	}
-	if (smbc_unlink(url) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_unlink = smbc_getFunctionUnlink(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_unlink(state->ctx, url) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(url, url_len);
-	switch (errno) {
+	switch (state->err = errno) {
 		case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't delete %s: Path does not exist", url); break;
@@ -323,15 +626,23 @@ PHP_FUNCTION(smbclient_mkdir)
 	char *path = NULL;
 	int path_len;
 	long mode = 0777;	/* Same as PHP's native mkdir() */
+	zval *zstate;
+	smbc_mkdir_fn smbc_mkdir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &path, &path_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &zstate, &path, &path_len, &mode) == FAILURE) {
 		return;
 	}
-	if (smbc_mkdir(path, (mode_t)mode) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_mkdir = smbc_getFunctionMkdir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_mkdir(state->ctx, path, (mode_t)mode) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(path, path_len);
-	switch (errno) {
+	switch (state->err = errno) {
 		case EACCES: php_error(E_WARNING, "Couldn't create SMB directory %s: Permission denied", path); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't create SMB directory %s: Invalid URL", path); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't create SMB directory %s: Path does not exist", path); break;
@@ -346,15 +657,23 @@ PHP_FUNCTION(smbclient_rmdir)
 {
 	char *url;
 	int url_len;
+	zval *zstate;
+	smbc_rmdir_fn smbc_rmdir;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &url, &url_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &url, &url_len) == FAILURE) {
 		return;
 	}
-	if (smbc_rmdir(url) == 0) {
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_rmdir = smbc_getFunctionRmdir(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_rmdir(state->ctx, url) == 0) {
 		RETURN_TRUE;
 	}
 	hide_password(url, url_len);
-	switch (errno) {
+	switch (state->err = errno) {
 		case EACCES: php_error(E_WARNING, "Couldn't delete %s: Permission denied", url); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't delete %s: Invalid URL", url); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't delete %s: Path does not exist", url); break;
@@ -371,14 +690,22 @@ PHP_FUNCTION(smbclient_stat)
 	char *file;
 	struct stat statbuf;
 	int retval, file_len;
+	zval *zstate;
+	smbc_stat_fn smbc_stat;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &file, &file_len) == FAILURE) {
 		return;
 	}
-	retval = smbc_stat(file, &statbuf);
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_stat = smbc_getFunctionStat(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	retval = smbc_stat(state->ctx, file, &statbuf);
 	if (retval < 0) {
 		hide_password(file, file_len);
-		switch (errno) {
+		switch (state->err = errno) {
 			case ENOENT: php_error(E_WARNING, "Couldn't stat %s: Does not exist", file); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't stat: null URL or smbc_init failed"); break;
 			case EACCES: php_error(E_WARNING, "Couldn't stat %s: Permission denied", file); break;
@@ -459,24 +786,33 @@ PHP_FUNCTION(smbclient_open)
 {
 	char *file, *flags;
 	int file_len, flags_len;
-	int handle;
 	int smbflags;
 	long mode = 0666;
+	zval *zstate;
+	SMBCFILE *handle;
+	smbc_open_fn smbc_open;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &file, &file_len, &flags, &flags_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss|l", &zstate, &file, &file_len, &flags, &flags_len, &mode) == FAILURE) {
 		return;
 	}
+	STATE_FROM_ZSTATE;
+
 	/* The flagstring is in the same format as the native fopen() uses, so
 	 * one of the characters r, w, a, x, c, optionally followed by a plus.
 	 * Need to translate this to an integer value for smbc_open: */
 	if (flagstring_to_smbflags(flags, flags_len, &smbflags) == 0) {
 		RETURN_FALSE;
 	}
-	if ((handle = smbc_open(file, smbflags, mode)) >= 0) {
-		RETURN_LONG(handle);
+	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((handle = smbc_open(state->ctx, file, smbflags, mode)) != NULL) {
+		ZEND_REGISTER_RESOURCE(return_value, handle, le_libsmbclient_file);
+		return;
 	}
 	hide_password(file, file_len);
-	switch (errno) {
+	switch (state->err = errno) {
 		case ENOMEM: php_error(E_WARNING, "Couldn't open %s: Out of memory", file); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't open %s: No file?", file); break;
 		case EEXIST: php_error(E_WARNING, "Couldn't open %s: Pathname already exists and O_CREAT and O_EXECL were specified", file); break;
@@ -494,17 +830,26 @@ PHP_FUNCTION(smbclient_creat)
 {
 	char *file;
 	int file_len;
-	int handle;
 	long mode = 0666;
+	zval *zstate;
+	SMBCFILE *handle;
+	smbc_creat_fn smbc_creat;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &file, &file_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &zstate, &file, &file_len, &mode) == FAILURE) {
 		return;
 	}
-	if ((handle = smbc_creat(file, (mode_t)mode)) >= 0) {
-		RETURN_LONG(handle);
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_creat = smbc_getFunctionCreat(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((handle = smbc_creat(state->ctx, file, (mode_t)mode)) != NULL) {
+		ZEND_REGISTER_RESOURCE(return_value, handle, le_libsmbclient_file);
+		return;
 	}
 	hide_password(file, file_len);
-	switch (errno) {
+	switch (state->err = errno) {
 		case ENOMEM: php_error(E_WARNING, "Couldn't create %s: Out of memory", file); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't create %s: No file?", file); break;
 		case EEXIST: php_error(E_WARNING, "Couldn't create %s: Pathname already exists and O_CREAT and O_EXECL were specified", file); break;
@@ -519,40 +864,56 @@ PHP_FUNCTION(smbclient_creat)
 
 PHP_FUNCTION(smbclient_read)
 {
-	long file, count;
+	long count;
 	ssize_t nbytes;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_read_fn smbc_read;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &file, &count) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &zstate, &zfile, &count) == FAILURE) {
 		return;
 	}
 	if (count < 0) {
 		php_error(E_WARNING, "Negative byte count: %ld", count);
 		RETURN_FALSE;
 	}
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_read = smbc_getFunctionRead(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
 	void *buf = emalloc(count);
 
-	if ((nbytes = smbc_read(file, buf, count)) >= 0) {
+	if ((nbytes = smbc_read(state->ctx, file, buf, count)) >= 0) {
 		RETURN_STRINGL(buf, nbytes, 0);
 	}
 	efree(buf);
-	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't read from %ld: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't read from %ld: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't read from %ld: Object not suitable for reading or bad buffer", file); break;
-		default: php_error(E_WARNING, "Couldn't read from %ld: Unknown error (%d)", file, errno); break;
+	switch (state->err = errno) {
+		case EISDIR: php_error(E_WARNING, "Read error: Is a directory"); break;
+		case EBADF: php_error(E_WARNING, "Read error: Not a valid file resource or not open for reading"); break;
+		case EINVAL: php_error(E_WARNING, "Read error: Object not suitable for reading or bad buffer"); break;
+		default: php_error(E_WARNING, "Read error: Unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
 
 PHP_FUNCTION(smbclient_write)
 {
-	long file, count = 0;
+	long count = 0;
 	int str_len;
 	char * str;
 	size_t nwrite;
 	ssize_t nbytes;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_write_fn smbc_write;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls|l", &file, &str, &str_len, &count) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrs|l", &zstate, &zfile, &str, &str_len, &count) == FAILURE) {
 		return;
 	}
 	if (count < 0) {
@@ -565,33 +926,50 @@ PHP_FUNCTION(smbclient_write)
 	else {
 		nwrite = count;
 	}
-	if ((nbytes = smbc_write(file, str, nwrite)) >= 0) {
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_write = smbc_getFunctionWrite(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((nbytes = smbc_write(state->ctx, file, str, nwrite)) >= 0) {
 		RETURN_LONG(nbytes);
 	}
-	switch (errno) {
-		case EISDIR: php_error(E_WARNING, "Couldn't write to %ld: Is a directory", file); break;
-		case EBADF: php_error(E_WARNING, "Couldn't write to %ld: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't write to %ld: Object not suitable for reading or bad buffer", file); break;
-		case EACCES: php_error(E_WARNING, "Couldn't write to %ld: Permission denied", file); break;
-		default: php_error(E_WARNING, "Couldn't write to %ld: Unknown error (%d)", file, errno); break;
+	switch (state->err = errno) {
+		case EISDIR: php_error(E_WARNING, "Write error: Is a directory"); break;
+		case EBADF: php_error(E_WARNING, "Write error: Not a valid file resource or not open for reading"); break;
+		case EINVAL: php_error(E_WARNING, "Write error: Object not suitable for reading or bad buffer"); break;
+		case EACCES: php_error(E_WARNING, "Write error: Permission denied"); break;
+		default: php_error(E_WARNING, "Write error: Unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
 
 PHP_FUNCTION(smbclient_close)
 {
-	long file;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_close_fn smbc_close;
+	php_libsmbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &file) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
 		return;
 	}
-	if (smbc_close(file) == 0) {
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_close = smbc_getFunctionClose(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_close(state->ctx, file) == 0) {
+		zend_list_delete(Z_LVAL_P(zfile));
 		RETURN_TRUE;
 	}
-	switch (errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't close %ld: Not a valid file descriptor or not open for reading", file); break;
-		case EINVAL: php_error(E_WARNING, "Couldn't close %ld: smbc_init not called", file); break;
-		default: php_error(E_WARNING, "Couldn't close %ld: Unknown error (%d)", file, errno); break;
+	switch (state->err = errno) {
+		case EBADF: php_error(E_WARNING, "Close error: Not a valid file resource or not open for reading"); break;
+		case EINVAL: php_error(E_WARNING, "Close error: State resource not initialized"); break;
+		default: php_error(E_WARNING, "Close error: Unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
