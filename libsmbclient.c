@@ -30,7 +30,7 @@
 
 #include <libsmbclient.h>
 
-#define LIBSMBCLIENT_VERSION	"0.3"
+#define LIBSMBCLIENT_VERSION	"0.4"
 
 #ifdef ZTS
 int libsmbclient_globals_id;
