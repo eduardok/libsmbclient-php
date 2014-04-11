@@ -42,6 +42,7 @@ PHP_FUNCTION(smbclient_unlink);
 PHP_FUNCTION(smbclient_mkdir);
 PHP_FUNCTION(smbclient_rmdir);
 PHP_FUNCTION(smbclient_stat);
+PHP_FUNCTION(smbclient_fstat);
 PHP_FUNCTION(smbclient_open);
 PHP_FUNCTION(smbclient_creat);
 PHP_FUNCTION(smbclient_read);

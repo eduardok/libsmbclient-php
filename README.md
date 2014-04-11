@@ -211,6 +211,17 @@ Returns an array with information on success, `false` on failure.
 The structure of the return array is the same as [PHP's native `stat`](http://php.net/manual/en/function.stat.php).
 See that manual for a complete description.
 
+### smbclient_fstat
+
+```php
+array smbclient_fstat ( resource $state, resource $file )
+```
+
+Returns information about the given file or directory.
+Returns an array with information on success, `false` on failure.
+The structure of the return array is the same as [PHP's native `stat`](http://php.net/manual/en/function.stat.php).
+See that manual for a complete description.
+
 ### smbclient_open
 
 ```php

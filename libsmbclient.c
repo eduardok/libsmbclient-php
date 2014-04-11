@@ -135,6 +135,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_readdir, NULL)
 	PHP_FE(smbclient_closedir, NULL)
 	PHP_FE(smbclient_stat, NULL)
+	PHP_FE(smbclient_fstat, NULL)
 	PHP_FE(smbclient_open, NULL)
 	PHP_FE(smbclient_creat, NULL)
 	PHP_FE(smbclient_read, NULL)
@@ -689,7 +690,7 @@ PHP_FUNCTION(smbclient_stat)
 {
 	char *file;
 	struct stat statbuf;
-	int retval, file_len;
+	int file_len;
 	zval *zstate;
 	smbc_stat_fn smbc_stat;
 	php_libsmbclient_state *state;
@@ -702,8 +703,7 @@ PHP_FUNCTION(smbclient_stat)
 	if ((smbc_stat = smbc_getFunctionStat(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
-	retval = smbc_stat(state->ctx, file, &statbuf);
-	if (retval < 0) {
+	if (smbc_stat(state->ctx, file, &statbuf) < 0) {
 		hide_password(file, file_len);
 		switch (state->err = errno) {
 			case ENOENT: php_error(E_WARNING, "Couldn't stat %s: Does not exist", file); break;
@@ -712,6 +712,68 @@ PHP_FUNCTION(smbclient_stat)
 			case ENOMEM: php_error(E_WARNING, "Couldn't stat %s: Out of memory", file); break;
 			case ENOTDIR: php_error(E_WARNING, "Couldn't stat %s: Not a directory", file); break;
 			default: php_error(E_WARNING, "Couldn't stat %s: Unknown error (%d)", file, errno); break;
+		}
+		RETURN_FALSE;
+	}
+	if (array_init(return_value) != SUCCESS) {
+		php_error(E_WARNING, "Couldn't initialize array");
+		RETURN_FALSE;
+	}
+	add_index_long(return_value, 0, statbuf.st_dev);
+	add_index_long(return_value, 1, statbuf.st_ino);
+	add_index_long(return_value, 2, statbuf.st_mode);
+	add_index_long(return_value, 3, statbuf.st_nlink);
+	add_index_long(return_value, 4, statbuf.st_uid);
+	add_index_long(return_value, 5, statbuf.st_gid);
+	add_index_long(return_value, 6, statbuf.st_rdev);
+	add_index_long(return_value, 7, statbuf.st_size);
+	add_index_long(return_value, 8, statbuf.st_atime);
+	add_index_long(return_value, 9, statbuf.st_mtime);
+	add_index_long(return_value, 10, statbuf.st_ctime);
+	add_index_long(return_value, 11, statbuf.st_blksize);
+	add_index_long(return_value, 12, statbuf.st_blocks);
+
+	add_assoc_long(return_value, "dev", statbuf.st_dev);
+	add_assoc_long(return_value, "ino", statbuf.st_ino);
+	add_assoc_long(return_value, "mode", statbuf.st_mode);
+	add_assoc_long(return_value, "nlink", statbuf.st_nlink);
+	add_assoc_long(return_value, "uid", statbuf.st_uid);
+	add_assoc_long(return_value, "gid", statbuf.st_gid);
+	add_assoc_long(return_value, "rdev", statbuf.st_rdev);
+	add_assoc_long(return_value, "size", statbuf.st_size);
+	add_assoc_long(return_value, "atime", statbuf.st_atime);
+	add_assoc_long(return_value, "mtime", statbuf.st_mtime);
+	add_assoc_long(return_value, "ctime", statbuf.st_ctime);
+	add_assoc_long(return_value, "blksize", statbuf.st_blksize);
+	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
+}
+
+PHP_FUNCTION(smbclient_fstat)
+{
+	struct stat statbuf;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_fstat_fn smbc_fstat;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_fstat = smbc_getFunctionFstat(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_fstat(state->ctx, file, &statbuf) < 0) {
+		switch (state->err = errno) {
+			case ENOENT: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Does not exist"); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't fstat: null resource or smbc_init failed"); break;
+			case EACCES: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Permission denied"); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Out of memory"); break;
+			case ENOTDIR: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory"); break;
+			default: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
 		}
 		RETURN_FALSE;
 	}
