@@ -145,6 +145,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_rename, NULL)
 	PHP_FE(smbclient_write, NULL)
 	PHP_FE(smbclient_unlink, NULL)
+	PHP_FE(smbclient_lseek, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1003,6 +1004,39 @@ PHP_FUNCTION(smbclient_write)
 		case EINVAL: php_error(E_WARNING, "Write error: Object not suitable for reading or bad buffer"); break;
 		case EACCES: php_error(E_WARNING, "Write error: Permission denied"); break;
 		default: php_error(E_WARNING, "Write error: Unknown error (%d)", errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_lseek)
+{
+	long offset, whence, ret;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_lseek_fn smbc_lseek;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrll", &zstate, &zfile, &offset, &whence) == FAILURE) {
+		return;
+	}
+	if ((int)whence != SEEK_SET && (int)whence != SEEK_CUR && (int)whence != SEEK_END) {
+		php_error(E_WARNING, "Invalid argument for whence");
+		RETURN_FALSE;
+	}
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_lseek = smbc_getFunctionLseek(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((ret = smbc_lseek(state->ctx, file, (off_t)offset, (int)whence)) > -1) {
+		RETURN_LONG(ret);
+	}
+	switch (state->err = errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't lseek: resource is invalid"); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't lseek: invalid parameters or not initialized"); break;
+		default: php_error(E_WARNING, "Couldn't lseek: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }

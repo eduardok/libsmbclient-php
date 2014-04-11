@@ -286,6 +286,22 @@ If you want to write zero bytes for some reason, write the empty string and omit
 
 Returns the number of bytes written on success, or `false` on failure.
 
+### smbclient_lseek
+
+```php
+int smbclient_lseek ( resource $state, resource $file, int offset, int whence )
+```
+
+Places the internal file pointer at the given byte offset.
+The `whence` parameter indicates from where to count.
+It can take three possible constants, which are the same as for [PHP's native `fseek`](http://php.net/manual/en/function.fseek.php):
+
+* `SEEK_SET`: set position equal to offset bytes;
+* `SEEK_CUR`: set position to current location plus offset;
+* `SEEK_END`: set position to end of file plus offset.
+
+Returns the new file offset as measured from the start of the file on success, `false` on failure.
+
 ### smbclient_close
 
 ```php
