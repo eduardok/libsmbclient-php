@@ -49,7 +49,7 @@ After loading this extension, the following functions will become available in P
 ### URI's
 
 URI's have the format `smb://[[[workgroup;]user[:password@]]server[/share[/path[/file]]]]`.
-If you need to specify a workgroup, username or password, you must include them in the URI.
+If you need to specify a workgroup, username or password, you can either include them in the URI, or specify them when you create a state resource.
 Examples of valid URI's:
 
 ```
