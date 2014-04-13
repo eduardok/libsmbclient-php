@@ -48,6 +48,7 @@ PHP_FUNCTION(smbclient_creat);
 PHP_FUNCTION(smbclient_read);
 PHP_FUNCTION(smbclient_write);
 PHP_FUNCTION(smbclient_lseek);
+PHP_FUNCTION(smbclient_ftruncate);
 PHP_FUNCTION(smbclient_close);
 
 #ifdef ZTS

@@ -146,6 +146,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_write, NULL)
 	PHP_FE(smbclient_unlink, NULL)
 	PHP_FE(smbclient_lseek, NULL)
+	PHP_FE(smbclient_ftruncate, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1037,6 +1038,37 @@ PHP_FUNCTION(smbclient_lseek)
 		case EBADF: php_error(E_WARNING, "Couldn't lseek: resource is invalid"); break;
 		case EINVAL: php_error(E_WARNING, "Couldn't lseek: invalid parameters or not initialized"); break;
 		default: php_error(E_WARNING, "Couldn't lseek: unknown error (%d)", errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_ftruncate)
+{
+	long offset;
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	smbc_ftruncate_fn smbc_ftruncate;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &zstate, &zfile, &offset) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_ftruncate = smbc_getFunctionFtruncate(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_ftruncate(state->ctx, file, offset) == 0) {
+		RETURN_TRUE;
+	}
+	switch (state->err = errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't ftruncate: resource is invalid"); break;
+		case EACCES: php_error(E_WARNING, "Couldn't ftruncate: permission denied"); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't ftruncate: invalid parameters or not initialized"); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't ftruncate: out of memory"); break;
+		default: php_error(E_WARNING, "Couldn't ftruncate: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }

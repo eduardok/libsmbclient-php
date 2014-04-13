@@ -302,6 +302,15 @@ It can take three possible constants, which are the same as for [PHP's native `f
 
 Returns the new file offset as measured from the start of the file on success, `false` on failure.
 
+### smbclient_ftruncate
+
+```php
+bool smbclient_ftruncate ( resource $state, resource $file, int size )
+```
+
+Truncates the given file to the given file size.
+Returns `true` on success, `false` on failure.
+
 ### smbclient_close
 
 ```php
