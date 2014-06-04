@@ -9,24 +9,34 @@ Getting started
 
 - Check out the source code using git:
 
-	git clone git://github.com/eduardok/libsmbclient-php.git
+```sh
+git clone git://github.com/eduardok/libsmbclient-php.git
+```
 
 - phpize it:
 
-	cd libsmbclient-php ; phpize
+```sh
+cd libsmbclient-php ; phpize
+```
 
 - Build the module
 
-	./configure
-	make
+```sh
+./configure
+make
+```
 
 - As root install the module into the extensions directory:
 
-	make install
+```sh
+make install
+```
 
 - Activate libsmbclient-php in php.ini:
 
-	extension="libsmbclient.so"
+```sh
+extension="libsmbclient.so"
+```
 
 If you want to contribute
 -------------------------
