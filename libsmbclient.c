@@ -32,15 +32,19 @@
 
 #define LIBSMBCLIENT_VERSION	"0.4"
 
+/* If Zend Thread Safety (ZTS) is defined, each thread gets its own copy of
+ * the php_libsmbclient_globals structure. Else we use a single global copy: */
 #ifdef ZTS
-int libsmbclient_globals_id;
+static int libsmbclient_globals_id;
 #else
-#define php_libsmbclient_globals libsmbclient_globals;
+static php_libsmbclient_globals libsmbclient_globals;
 #endif
 
 #ifdef ZTS
 static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient_globals_p TSRMLS_DC)
 {
+	/* This function initializes the thread-local storage.
+	 * We currently don't use this. */
 }
 #endif
 
@@ -60,8 +64,8 @@ php_libsmbclient_state;
 #define PHP_LIBSMBCLIENT_STATE_NAME "smbclient state"
 #define PHP_LIBSMBCLIENT_FILE_NAME "smbclient file"
 
-int le_libsmbclient_state;
-int le_libsmbclient_file;
+static int le_libsmbclient_state;
+static int le_libsmbclient_file;
 
 static char *
 find_char (char *start, char *last, char q)
@@ -245,8 +249,12 @@ smbclient_file_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 PHP_MINIT_FUNCTION(smbclient)
 {
+	/* If ZTS is defined, allocate and init a copy of the global
+	 * datastructure for each thread: */
 	#ifdef ZTS
 	ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
+	#else
+	php_libsmbclient_init_globals(libsmbclient_globals);
 	#endif
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);

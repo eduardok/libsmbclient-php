@@ -51,6 +51,10 @@ PHP_FUNCTION(smbclient_lseek);
 PHP_FUNCTION(smbclient_ftruncate);
 PHP_FUNCTION(smbclient_close);
 
+/* If Zend Thread Safety (ZTS) is defined, each thread gets its own private
+ * php_libsmbclient_globals structure, the elements of which it can access
+ * through the LIBSMBCLIENT() macro. Without ZTS, there is just one master
+ * structure in which we access the members directly: */
 #ifdef ZTS
 #define LIBSMBCLIENT(v) TSRMG(libsmbclient_globals_id, php_libsmbclient_globals *, v)
 #else
