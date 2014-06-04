@@ -40,13 +40,11 @@ static int libsmbclient_globals_id;
 static php_libsmbclient_globals libsmbclient_globals;
 #endif
 
-#ifdef ZTS
 static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient_globals_p TSRMLS_DC)
 {
 	/* This function initializes the thread-local storage.
 	 * We currently don't use this. */
 }
-#endif
 
 typedef struct _php_libsmbclient_state
 {
@@ -254,7 +252,7 @@ PHP_MINIT_FUNCTION(smbclient)
 	#ifdef ZTS
 	ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
 	#else
-	php_libsmbclient_init_globals(libsmbclient_globals);
+	php_libsmbclient_init_globals(&libsmbclient_globals);
 	#endif
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
