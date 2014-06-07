@@ -50,6 +50,7 @@ PHP_FUNCTION(smbclient_write);
 PHP_FUNCTION(smbclient_lseek);
 PHP_FUNCTION(smbclient_ftruncate);
 PHP_FUNCTION(smbclient_close);
+PHP_FUNCTION(smbclient_chmod);
 
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own private
  * php_libsmbclient_globals structure, the elements of which it can access

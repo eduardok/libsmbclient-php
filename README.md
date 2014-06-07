@@ -327,3 +327,20 @@ bool smbclient_close ( resource $state, resource $file )
 
 Close a file resource obtained with `smbclient_open` or `smbclient_creat`.
 Returns `true` on success, `false` on failure.
+
+### smbclient_chmod
+
+```php
+bool smbclient_chmod ( resource $state, string $uri, int mode )
+```
+
+Set the DOS attributes for a file.
+According to the libsmbclient header file, this function is not implemented.
+However, the Samba sources do seem to implement it, and use the following mapping:
+
+Permission | description
+---------- | -----------
+Not u+w, g+w or o+w | File is read-only
+u+x | File is archived
+g+x | File is system
+o+x | File is hidden

@@ -149,6 +149,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_unlink, NULL)
 	PHP_FE(smbclient_lseek, NULL)
 	PHP_FE(smbclient_ftruncate, NULL)
+	PHP_FE(smbclient_chmod, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1104,6 +1105,36 @@ PHP_FUNCTION(smbclient_close)
 		case EBADF: php_error(E_WARNING, "Close error: Not a valid file resource or not open for reading"); break;
 		case EINVAL: php_error(E_WARNING, "Close error: State resource not initialized"); break;
 		default: php_error(E_WARNING, "Close error: Unknown error (%d)", errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_chmod)
+{
+	char *file;
+	int file_len;
+	long mode;
+	zval *zstate;
+	smbc_chmod_fn smbc_chmod;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsl", &zstate, &file, &file_len, &mode) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_chmod = smbc_getFunctionChmod(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_chmod(state->ctx, file, (mode_t)mode) == 0) {
+		RETURN_TRUE;
+	}
+	hide_password(file, file_len);
+	switch (state->err = errno) {
+		case EPERM: php_error(E_WARNING, "Couldn't chmod %s: the effective UID does not match the owner of the file, and is not zero", file); break;
+		case ENOENT: php_error(E_WARNING, "Couldn't chmod %s: file or directory does not exist", file); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't chmod %s: insufficient memory", file); break;
+		default: php_error(E_WARNING, "Couldn't chmod %s: unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
