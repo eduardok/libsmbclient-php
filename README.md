@@ -344,3 +344,19 @@ Not u+w, g+w or o+w | File is read-only
 u+x | File is archived
 g+x | File is system
 o+x | File is hidden
+
+### smbclient_utimes
+
+```php
+bool smbclient_utimes ( resource $state, string $uri [, int $mtime = time() [, int $atime = $mtime ] ] )
+```
+
+Set the write time and access time for the given file or directory.
+These correspond to Unix mtime and atime.
+Timestamps are in Unix timestamp format.
+Returns `true` on success, `false` on failure.
+
+Beware of inconsistencies in how Samba stores and retrieves timestamps.
+When you change the mtime and atime for a file, then stat the file with `smbclient_stat`, the stat output will indicate that you changed ctime and mtime, in that order, instead.
+(This is likely a bug somewhere, but it's hard to pinpoint the cause.)
+When you use mount.cifs to mount the share and check the results of this function with the `stat` commandline tool, the `mtime` argument will set both the mtime and ctime, and the `atime` argument will set the atime.

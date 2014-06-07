@@ -150,6 +150,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_lseek, NULL)
 	PHP_FE(smbclient_ftruncate, NULL)
 	PHP_FE(smbclient_chmod, NULL)
+	PHP_FE(smbclient_utimes, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1135,6 +1136,47 @@ PHP_FUNCTION(smbclient_chmod)
 		case ENOENT: php_error(E_WARNING, "Couldn't chmod %s: file or directory does not exist", file); break;
 		case ENOMEM: php_error(E_WARNING, "Couldn't chmod %s: insufficient memory", file); break;
 		default: php_error(E_WARNING, "Couldn't chmod %s: unknown error (%d)", file, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_utimes)
+{
+	char *file;
+	int file_len;
+	long mtime = -1, atime = -1;
+	zval *zstate;
+	struct timeval times[2];
+	smbc_utimes_fn smbc_utimes;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|ll", &zstate, &file, &file_len, &mtime, &atime) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	times[0].tv_usec = 0;	/* times[0] = access time (atime) */
+	times[1].tv_usec = 0;	/* times[1] = write time (mtime) */
+
+	/* TODO: we are a bit lazy here about the optional arguments and assume
+	 * that if they are negative, they were omitted. This makes it
+	 * impossible to use legitimate negative timestamps - a rare use-case. */
+	times[1].tv_sec = (mtime < 0) ? time(NULL) : mtime;
+
+	/* If not given, atime defaults to value of mtime: */
+	times[0].tv_sec = (atime < 0) ? times[1].tv_sec : atime;
+
+	if ((smbc_utimes = smbc_getFunctionUtimes(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_utimes(state->ctx, file, times) == 0) {
+		RETURN_TRUE;
+	}
+	hide_password(file, file_len);
+	switch (state->err = errno) {
+		case EINVAL: php_error(E_WARNING, "Couldn't set times on %s: the client library is not properly initialized", file); break;
+		case EPERM: php_error(E_WARNING, "Couldn't set times on %s: permission was denied", file); break;
+		default: php_error(E_WARNING, "Couldn't set times on %s: unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
