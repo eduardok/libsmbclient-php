@@ -372,3 +372,11 @@ Instead, the function returns an array of the names of all extended attributes k
 Since the underlying function always returns a static string without looking, don't take the output as gospel.
 It does provide you with a list of attribute names that you can use to fetch individually.
 Returns `false` on failure.
+
+### smbclient_getxattr
+
+```php
+string smbclient_getxattr ( resource $state, string $uri, string $xattr )
+```
+
+Returns the value of the given extended attribute, or false on failure.

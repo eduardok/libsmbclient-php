@@ -152,6 +152,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_chmod, NULL)
 	PHP_FE(smbclient_utimes, NULL)
 	PHP_FE(smbclient_listxattr, NULL)
+	PHP_FE(smbclient_getxattr, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1230,6 +1231,44 @@ PHP_FUNCTION(smbclient_listxattr)
 		case EPERM: php_error(E_WARNING, "Couldn't get xattrs: permission denied"); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattrs: file system does not support extended attributes"); break;
 		default: php_error(E_WARNING, "Couldn't get xattrs: unknown error (%d)", errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_getxattr)
+{
+	char *url, *name;
+	int url_len, name_len, retsize;
+	char values[1000];
+	zval *zstate;
+	smbc_getxattr_fn smbc_getxattr;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &url, &url_len, &name, &name_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_getxattr = smbc_getFunctionGetxattr(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	/* TODO: 1000 chars should be enough for everyone...?
+	 * However, doing an initial blank call to determine the response size
+	 * seems wasteful, and vulnerable to a time-of-check, time-of-use
+	 * error. */
+	if ((retsize = smbc_getxattr(state->ctx, url, name, values, sizeof(values))) >= 0) {
+		if (retsize > sizeof(values)) {
+			retsize = sizeof(values);
+		}
+		RETURN_STRINGL(values, retsize, 1);
+	}
+	hide_password(url, url_len);
+	switch (state->err = errno) {
+		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", url); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", url); break;
+		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", url); break;
+		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
 }
