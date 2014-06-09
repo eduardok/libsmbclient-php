@@ -151,6 +151,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_ftruncate, NULL)
 	PHP_FE(smbclient_chmod, NULL)
 	PHP_FE(smbclient_utimes, NULL)
+	PHP_FE(smbclient_listxattr, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1177,6 +1178,58 @@ PHP_FUNCTION(smbclient_utimes)
 		case EINVAL: php_error(E_WARNING, "Couldn't set times on %s: the client library is not properly initialized", file); break;
 		case EPERM: php_error(E_WARNING, "Couldn't set times on %s: permission was denied", file); break;
 		default: php_error(E_WARNING, "Couldn't set times on %s: unknown error (%d)", file, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_listxattr)
+{
+	char *url, *s, *c;
+	int url_len;
+	char values[1000];
+	zval *zstate;
+	smbc_listxattr_fn smbc_listxattr;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &url, &url_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_listxattr = smbc_getFunctionListxattr(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	/* This is a bit of a bogus function. Looking in the Samba source, it
+	 * always returns all possible attribute names, regardless of what the
+	 * file system supports or which attributes the file actually has.
+	 * Because this list is static, we can get away with using a fixed
+	 * buffer size.*/
+	if (smbc_listxattr(state->ctx, url, values, sizeof(values)) >= 0) {
+		if (array_init(return_value) != SUCCESS) {
+			php_error(E_WARNING, "Couldn't initialize array");
+			RETURN_FALSE;
+		}
+		/* Each attribute is null-separated, the list itself terminates
+		 * with an empty element (i.e. two null bytes in a row). */
+		for (s = c = values; c < values + sizeof(values); c++) {
+			if (*c != '\0') {
+				continue;
+			}
+			/* c and s identical: last element */
+			if (s == c) {
+				break;
+			}
+			add_next_index_stringl(return_value, s, c - s, 1);
+			s = c + 1;
+		}
+		return;
+	}
+	switch (state->err = errno) {
+		case EINVAL: php_error(E_WARNING, "Couldn't get xattrs: library not initialized"); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't get xattrs: out of memory"); break;
+		case EPERM: php_error(E_WARNING, "Couldn't get xattrs: permission denied"); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattrs: file system does not support extended attributes"); break;
+		default: php_error(E_WARNING, "Couldn't get xattrs: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }

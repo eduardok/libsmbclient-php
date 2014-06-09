@@ -360,3 +360,15 @@ Beware of inconsistencies in how Samba stores and retrieves timestamps.
 When you change the mtime and atime for a file, then stat the file with `smbclient_stat`, the stat output will indicate that you changed ctime and mtime, in that order, instead.
 (This is likely a bug somewhere, but it's hard to pinpoint the cause.)
 When you use mount.cifs to mount the share and check the results of this function with the `stat` commandline tool, the `mtime` argument will set both the mtime and ctime, and the `atime` argument will set the atime.
+
+### smbclient_listxattr
+
+```php
+array smbclient_listxattr ( resource $state, string $uri )
+```
+
+This function should, according to Samba documentation, return a list of all names of extended attributes applicable to the given file or directory.
+Instead, the function returns an array of the names of all extended attributes known to Samba, regardless of what the filesystem actually supports or which attributes are actually available on the resource.
+Since the underlying function always returns a static string without looking, don't take the output as gospel.
+It does provide you with a list of attribute names that you can use to fetch individually.
+Returns `false` on failure.
