@@ -49,8 +49,6 @@ developer(s) directly.
 
 	http://groups.google.com/group/libsmbclient-php
 
-Eduardo Kienetz
-
 
 ## PHP interface
 
