@@ -216,7 +216,7 @@ smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		switch (errno) {
 			case EBUSY: php_error(E_WARNING, "Couldn't destroy SMB context: connection in use"); break;
 			case EBADF: php_error(E_WARNING, "Couldn't destroy SMB context: invalid handle"); break;
-			default: php_error(E_WARNING, "Couldn't destroy SMB context: unknown error"); break;
+			default: php_error(E_WARNING, "Couldn't destroy SMB context: unknown error (%d)", errno); break;
 		}
 	}
 	if (state->wrkg != NULL) {
@@ -289,7 +289,7 @@ PHP_FUNCTION(smbclient_state_new)
 	if ((ctx = smbc_new_context()) == NULL) {
 		switch (errno) {
 			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
-			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error %d", errno); break;
+			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error (%d)", errno); break;
 		};
 		RETURN_FALSE;
 	}
@@ -382,7 +382,7 @@ PHP_FUNCTION(smbclient_state_init)
 		case EBADF: php_error(E_WARNING, "Couldn't init SMB context: null context given"); break;
 		case ENOMEM: php_error(E_WARNING, "Couldn't init SMB context: insufficient memory"); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't init SMB context: cannot load smb.conf"); break;
-		default: php_error(E_WARNING, "Couldn't init SMB context: unknown error %d", errno); break;
+		default: php_error(E_WARNING, "Couldn't init SMB context: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -421,7 +421,7 @@ PHP_FUNCTION(smbclient_state_free)
 	switch (state->err = errno) {
 		case EBUSY: php_error(E_WARNING, "Couldn't destroy smbclient state: connection in use"); break;
 		case EBADF: php_error(E_WARNING, "Couldn't destroy smbclient state: invalid handle"); break;
-		default: php_error(E_WARNING, "Couldn't destroy smbclient state: unknown error"); break;
+		default: php_error(E_WARNING, "Couldn't destroy smbclient state: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -470,7 +470,7 @@ PHP_FUNCTION(smbclient_opendir)
 		case ENOTDIR: php_error(E_WARNING, "Couldn't open SMB directory %s: Not a directory", path); break;
 		case EPERM: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup not found", path); break;
 		case ENODEV: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup or server not found", path); break;
-		default: php_error(E_WARNING, "Couldn't open SMB directory %s: Unknown error (%d)", path, errno); break;
+		default: php_error(E_WARNING, "Couldn't open SMB directory %s: unknown error (%d)", path, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -500,7 +500,7 @@ PHP_FUNCTION(smbclient_readdir)
 			case 0: RETURN_FALSE;
 			case EBADF: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory resource"); break;
 			case EINVAL: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": State resource not initialized"); break;
-			default: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
+			default: php_error(E_WARNING, "Couldn't read " PHP_LIBSMBCLIENT_FILE_NAME ": unknown error (%d)", errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -548,7 +548,7 @@ PHP_FUNCTION(smbclient_closedir)
 	}
 	switch (state->err = errno) {
 		case EBADF: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory resource"); break;
-		default: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
+		default: php_error(E_WARNING, "Couldn't close " PHP_LIBSMBCLIENT_FILE_NAME ": unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -594,7 +594,7 @@ PHP_FUNCTION(smbclient_rename)
 		case EPERM: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup not found", ourl); break;
 		case EXDEV: php_error(E_WARNING, "Couldn't open SMB directory %s: Workgroup or server not found", ourl); break;
 		case EEXIST: php_error(E_WARNING, "Couldn't rename SMB directory %s: new name already exists", ourl); break;
-		default: php_error(E_WARNING, "Couldn't open SMB directory %s: Unknown error (%d)", ourl, errno); break;
+		default: php_error(E_WARNING, "Couldn't open SMB directory %s: unknown error (%d)", ourl, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -627,7 +627,7 @@ PHP_FUNCTION(smbclient_unlink)
 		case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
 		case EISDIR: php_error(E_WARNING, "Couldn't delete %s: It is a Directory (use rmdir instead)", url); break;
 		case EBUSY: php_error(E_WARNING, "Couldn't delete %s: Device or resource busy", url); break;
-		default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
+		default: php_error(E_WARNING, "Couldn't delete %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -659,7 +659,7 @@ PHP_FUNCTION(smbclient_mkdir)
 		case ENOENT: php_error(E_WARNING, "Couldn't create SMB directory %s: Path does not exist", path); break;
 		case ENOMEM: php_error(E_WARNING, "Couldn't create SMB directory %s: Insufficient memory", path); break;
 		case EEXIST: php_error(E_WARNING, "Couldn't create SMB directory %s: Directory already exists", path); break;
-		default: php_error(E_WARNING, "Couldn't create SMB directory %s: Unknown error (%d)", path, errno); break;
+		default: php_error(E_WARNING, "Couldn't create SMB directory %s: unknown error (%d)", path, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -691,7 +691,7 @@ PHP_FUNCTION(smbclient_rmdir)
 		case ENOMEM: php_error(E_WARNING, "Couldn't delete %s: Insufficient memory", url); break;
 		case EPERM: php_error(E_WARNING, "Couldn't delete %s: Workgroup not found", url); break;
 		case ENOTEMPTY: php_error(E_WARNING, "Couldn't delete %s: It is not empty", url); break;
-		default: php_error(E_WARNING, "Couldn't delete %s: Unknown error (%d)", url, errno); break;
+		default: php_error(E_WARNING, "Couldn't delete %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -721,7 +721,7 @@ PHP_FUNCTION(smbclient_stat)
 			case EACCES: php_error(E_WARNING, "Couldn't stat %s: Permission denied", file); break;
 			case ENOMEM: php_error(E_WARNING, "Couldn't stat %s: Out of memory", file); break;
 			case ENOTDIR: php_error(E_WARNING, "Couldn't stat %s: Not a directory", file); break;
-			default: php_error(E_WARNING, "Couldn't stat %s: Unknown error (%d)", file, errno); break;
+			default: php_error(E_WARNING, "Couldn't stat %s: unknown error (%d)", file, errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -783,7 +783,7 @@ PHP_FUNCTION(smbclient_fstat)
 			case EACCES: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Permission denied"); break;
 			case ENOMEM: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Out of memory"); break;
 			case ENOTDIR: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Not a directory"); break;
-			default: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": Unknown error (%d)", errno); break;
+			default: php_error(E_WARNING, "Couldn't fstat " PHP_LIBSMBCLIENT_FILE_NAME ": unknown error (%d)", errno); break;
 		}
 		RETURN_FALSE;
 	}
@@ -893,7 +893,7 @@ PHP_FUNCTION(smbclient_open)
 		case ENODEV: php_error(E_WARNING, "Couldn't open %s: Requested share does not exist", file); break;
 		case ENOTDIR: php_error(E_WARNING, "Couldn't open %s: Path component isn't a directory", file); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't open %s: Directory in path doesn't exist", file); break;
-		default: php_error(E_WARNING, "Couldn't open %s: Unknown error (%d)", file, errno); break;
+		default: php_error(E_WARNING, "Couldn't open %s: unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -929,7 +929,7 @@ PHP_FUNCTION(smbclient_creat)
 		case EACCES: php_error(E_WARNING, "Couldn't create %s: Access denied", file); break;
 		case ENODEV: php_error(E_WARNING, "Couldn't create %s: Requested share does not exist", file); break;
 		case ENOENT: php_error(E_WARNING, "Couldn't create %s: Directory in path doesn't exist", file); break;
-		default: php_error(E_WARNING, "Couldn't create %s: Unknown error (%d)", file, errno); break;
+		default: php_error(E_WARNING, "Couldn't create %s: unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -967,7 +967,7 @@ PHP_FUNCTION(smbclient_read)
 		case EISDIR: php_error(E_WARNING, "Read error: Is a directory"); break;
 		case EBADF: php_error(E_WARNING, "Read error: Not a valid file resource or not open for reading"); break;
 		case EINVAL: php_error(E_WARNING, "Read error: Object not suitable for reading or bad buffer"); break;
-		default: php_error(E_WARNING, "Read error: Unknown error (%d)", errno); break;
+		default: php_error(E_WARNING, "Read error: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -1012,7 +1012,7 @@ PHP_FUNCTION(smbclient_write)
 		case EBADF: php_error(E_WARNING, "Write error: Not a valid file resource or not open for reading"); break;
 		case EINVAL: php_error(E_WARNING, "Write error: Object not suitable for reading or bad buffer"); break;
 		case EACCES: php_error(E_WARNING, "Write error: Permission denied"); break;
-		default: php_error(E_WARNING, "Write error: Unknown error (%d)", errno); break;
+		default: php_error(E_WARNING, "Write error: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -1105,7 +1105,7 @@ PHP_FUNCTION(smbclient_close)
 	switch (state->err = errno) {
 		case EBADF: php_error(E_WARNING, "Close error: Not a valid file resource or not open for reading"); break;
 		case EINVAL: php_error(E_WARNING, "Close error: State resource not initialized"); break;
-		default: php_error(E_WARNING, "Close error: Unknown error (%d)", errno); break;
+		default: php_error(E_WARNING, "Close error: unknown error (%d)", errno); break;
 	}
 	RETURN_FALSE;
 }
