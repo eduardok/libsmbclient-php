@@ -153,6 +153,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_utimes, NULL)
 	PHP_FE(smbclient_listxattr, NULL)
 	PHP_FE(smbclient_getxattr, NULL)
+	PHP_FE(smbclient_setxattr, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -258,6 +259,10 @@ PHP_MINIT_FUNCTION(smbclient)
 	#else
 	php_libsmbclient_init_globals(&libsmbclient_globals);
 	#endif
+
+	/* Constants for smbclient_setxattr: */
+	REGISTER_LONG_CONSTANT("SMBCLIENT_XATTR_CREATE", SMBC_XATTR_FLAG_CREATE, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_XATTR_REPLACE", SMBC_XATTR_FLAG_REPLACE, CONST_PERSISTENT | CONST_CS);
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
 	le_libsmbclient_file = zend_register_list_destructors_ex(smbclient_file_dtor, NULL, PHP_LIBSMBCLIENT_FILE_NAME, module_number);
@@ -1269,6 +1274,39 @@ PHP_FUNCTION(smbclient_getxattr)
 		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", url); break;
 		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", url, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_setxattr)
+{
+	char *url, *name, *val;
+	int url_len, name_len, val_len;
+	long flags = 0;
+	zval *zstate;
+	smbc_setxattr_fn smbc_setxattr;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsss|l", &zstate, &url, &url_len, &name, &name_len, &val, &val_len, &flags) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_setxattr = smbc_getFunctionSetxattr(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_setxattr(state->ctx, url, name, val, val_len, flags) == 0) {
+		RETURN_TRUE;
+	}
+	hide_password(url, url_len);
+	switch (state->err = errno) {
+		case EINVAL: php_error(E_WARNING, "Couldn't set attribute on %s: client library not properly initialized", url); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't set attribute on %s: out of memory", url); break;
+		case EEXIST: php_error(E_WARNING, "Couldn't set attribute on %s: attribute already exists", url); break;
+		case ENOATTR: php_error(E_WARNING, "Couldn't set attribute on %s: attribute does not exist", url); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't set attribute on %s: not supported by filesystem", url); break;
+		case EPERM: php_error(E_WARNING, "Couldn't set attribute on %s: permission denied", url); break;
+		default: php_error(E_WARNING, "Couldn't set attribute on %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
 }

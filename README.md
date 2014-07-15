@@ -376,7 +376,28 @@ Returns `false` on failure.
 ### smbclient_getxattr
 
 ```php
-string smbclient_getxattr ( resource $state, string $uri, string $xattr )
+string smbclient_getxattr ( resource $state, string $uri, string $key )
 ```
 
-Returns the value of the given extended attribute, or false on failure.
+Returns the value of the given extended attribute with name `$key`, or `false` on failure.
+The value returned is always a string.
+
+For example, to get a file's [extended attributes](http://msdn.microsoft.com/en-us/library/cc246322.aspx), query the `system.dos_attr.mode` key.
+
+### smbclient_setxattr
+
+```php
+bool smbclient_setxattr ( resource $state, string $uri, string $key, string $value [, int flags = 0 ] )
+```
+
+Sets the extended attribute with name `$key` to value `$value`.
+For now, see `libsmbclient.h`, the section on `smbc_setxattr`, for details on how to specify keys and values.
+`flags` defaults to zero, meaning that the attribute will be created if it does not exist, and replaced if it already exists.
+You can also set `flags` to one of these values:
+
+Constant | description
+-------- | -----------
+SMBCLIENT_XATTR_CREATE | Only create the attribute: fail with `EEXIST` if it already exists
+SMBCLIENT_XATTR_REPLACE | Only replace the attribute: fail with `ENOATTR` if it does not exist
+
+Returns `true` on success, `false` on failure.
