@@ -154,6 +154,7 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_listxattr, NULL)
 	PHP_FE(smbclient_getxattr, NULL)
 	PHP_FE(smbclient_setxattr, NULL)
+	PHP_FE(smbclient_removexattr, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -1307,6 +1308,36 @@ PHP_FUNCTION(smbclient_setxattr)
 		case ENOTSUP: php_error(E_WARNING, "Couldn't set attribute on %s: not supported by filesystem", url); break;
 		case EPERM: php_error(E_WARNING, "Couldn't set attribute on %s: permission denied", url); break;
 		default: php_error(E_WARNING, "Couldn't set attribute on %s: unknown error (%d)", url, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_removexattr)
+{
+	char *url, *name;
+	int url_len, name_len;
+	zval *zstate;
+	smbc_removexattr_fn smbc_removexattr;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &url, &url_len, &name, &name_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_removexattr = smbc_getFunctionRemovexattr(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_removexattr(state->ctx, url, name) == 0) {
+		RETURN_TRUE;
+	}
+	hide_password(url, url_len);
+	switch (state->err = errno) {
+		case EINVAL: php_error(E_WARNING, "Couldn't remove attribute on %s: client library not properly initialized", url); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't remove attribute on %s: out of memory", url); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't remove attribute on %s: not supported by filesystem", url); break;
+		case EPERM: php_error(E_WARNING, "Couldn't remove attribute on %s: permission denied", url); break;
+		default: php_error(E_WARNING, "Couldn't remove attribute on %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
 }

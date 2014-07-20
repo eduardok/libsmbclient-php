@@ -55,6 +55,7 @@ PHP_FUNCTION(smbclient_utimes);
 PHP_FUNCTION(smbclient_listxattr);
 PHP_FUNCTION(smbclient_getxattr);
 PHP_FUNCTION(smbclient_setxattr);
+PHP_FUNCTION(smbclient_removexattr);
 
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own private
  * php_libsmbclient_globals structure, the elements of which it can access

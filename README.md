@@ -401,3 +401,12 @@ SMBCLIENT_XATTR_CREATE | Only create the attribute: fail with `EEXIST` if it alr
 SMBCLIENT_XATTR_REPLACE | Only replace the attribute: fail with `ENOATTR` if it does not exist
 
 Returns `true` on success, `false` on failure.
+
+### smbclient_removexattr
+
+```php
+bool smbclient_removexattr ( resource $state, string $uri, string $key )
+```
+
+Removes the extended attribute with name `$key` from the file or directory pointed to by the URI.
+Returns `true` on success, `false` on failure.
