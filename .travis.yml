@@ -5,11 +5,33 @@ compiler:
   - gcc
 
 before_install:
+  - pass=$(perl -e 'print crypt("password", "testuser")')
+  - sudo useradd -m -p "$pass" testuser
   - sudo apt-get update -qq
-  - sudo apt-get install -qq php5-dev libsmbclient-dev
+  - sudo apt-get install -qq php5 php5-dev libsmbclient-dev samba
+  - sudo bash tests/setup-share.sh
+  - |
+    echo "
+    [testshare]
+    comment = testshare
+    path = /home/testuser/testshare
+    guest ok = yes
+    read only = no
+    map archive = yes
+    map system = yes
+    map hidden = yes
+    create mask = 0777
+    inherit permissions = yes
+    " | sudo tee -a /etc/samba/smb.conf
+  - sudo service smbd restart
+  - testparm -s
+  - ( echo password; echo password ) | sudo smbpasswd -s -a testuser
+  - wget https://phar.phpunit.de/phpunit.phar
 
 script:
   - phpize
   - ./configure
   - make
   - sudo make install
+  - echo 'extension="libsmbclient.so"' | sudo tee -a /etc/php5/cli/php.ini
+  - /usr/bin/php phpunit.phar tests
