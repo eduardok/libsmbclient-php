@@ -17,7 +17,7 @@ class OpendirTest extends PHPUnit_Framework_TestCase
 	public function
 	testOpendirInvalidState ()
 	{
-		$dir = smbclient_opendir(null, 'smb://localhost/testshare/does-not-exist');
+		$dir = smbclient_opendir(null, 'smb://localhost/testshare/testdir');
 		$this->assertFalse($dir);
 	}
 
