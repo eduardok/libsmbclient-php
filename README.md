@@ -1,15 +1,15 @@
 libsmbclient-php: a PHP wrapper for libsmbclient
 ================================================
 
-libsmbclient-php is a PHP extension that uses samba's libsmbclient library
-to provide samba related functions to PHP programs.
+libsmbclient-php is a PHP extension that uses Samba's libsmbclient library
+to provide Samba related functions to PHP programs.
 
 [![Build Status](https://travis-ci.org/eduardok/libsmbclient-php.svg)](https://travis-ci.org/eduardok/libsmbclient-php)
 
 Getting started
 ---------------
 
-- Check out the source code using git:
+- Download a [release tarball](https://github.com/eduardok/libsmbclient-php/releases) or check out the source code using git:
 
 ```sh
 git clone git://github.com/eduardok/libsmbclient-php.git
@@ -31,7 +31,7 @@ make
 - As root install the module into the extensions directory:
 
 ```sh
-make install
+sudo make install
 ```
 
 - Activate libsmbclient-php in php.ini:
@@ -40,17 +40,13 @@ make install
 extension="libsmbclient.so"
 ```
 
-If you want to contribute
--------------------------
+Contributions and bug reports
+-----------------------------
 
-libsmbclient-php has been improved on a "as needed" basis, so it could be
-that there is a feature not yet implemented, etc.
-As a way of keeping a history for other people using libsmbclient-php it
-is better to get in contact through the mailing list instead of the
-developer(s) directly.
+If you encounter a bug or want to contribute, please file an [issue](https://github.com/eduardok/libsmbclient-php/issues) at GitHub.
+Sending pull requests on GitHub is the preferred method of contributing code, because Travis CI will automatically build and test your pull request.
 
-	http://groups.google.com/group/libsmbclient-php
-
+There is also a defunct [http://groups.google.com/group/libsmbclient-php](mailing list).
 
 ## PHP interface
 
@@ -67,6 +63,42 @@ smb://server
 smb://server/share
 smb://user:password@server/share/path/to/file.txt
 ```
+
+### Error handling
+
+As a low-level extension, libsmbclient-php does not throw exceptions.
+Instead, success or failure is communicated the old-fashioned way: by the function's return value.
+You should always check if a function returns `false` for failure.
+If you really want exceptions, you can build your own high-level layer by translating return values and error codes to appropriate exceptions.
+
+For errors that occur in the Samba layer, the `smbclient_` functions will generally print a human-readable PHP warning with an interpretation of what went wrong.
+The interpretations come from Samba's `libsmbclient.h` header file.
+You can suppress the warnings by prefixing the function call with an `@`.
+Please don't attempt to parse the warning messages, their wording is not very consistent and likely to change in future versions.
+
+For some unlikely errors encountered by the extension itself, no warning is printed and the function just returns `false`.
+
+When an error occurs, you can get the error number with `smbclient_state_errno`.
+For errors outside of Samba (such as wrong arguments to the function), its value will be 0, but for errors originating within Samba, it will be a Unix `errno` value straight from the underlying library.
+For example, `smbclient_open` may set the error code to `13`, which corresponds with `EACCES`, which means that permission was denied.
+Please refer to Samba's `libsmbclient.h` for documentation on which error codes you can expect to see; each function has its own list of things that can go wrong.
+
+For convenience, here's a non-exhaustive list of popular error codes:
+
+name | value | description
+---- | ----- | -----------
+EPERM | 1 | Operation not permitted
+ENOENT | 2 | No such file or directory
+EBADF | 9 | Bad file or directory resource
+ENOMEM | 12 | Out of memory
+EACCES | 13 | Permissiond denied
+EBUSY | 16 | Device or resource busy
+EEXIST | 17 | Resource exists
+ENOTDIR | 20 | Not a directory
+EISDIR | 21 | Is a directory
+EINVAL | 22 | Invalid argument
+ENOSPC | 28 | No space left on device
+ENOTEMPTY | 39 | Directory not empty
 
 ### smbclient_state_new
 
@@ -90,7 +122,7 @@ bool smbclient_state_init ( resource $state [, string $workgroup = null [, strin
 Initialize the smbclient state resource.
 Returns `true` on success, `false` on failure.
 Before using the state resource in other functions, it must be initialized.
-Between creating and initializing the resource, you can set certain options for the connection.
+Between creating and initializing the resource, you can set certain options for the connection (not implemented yet).
 Workgroup, username and password are optional parameters.
 You can specify any of them as `null` or `false` to indicate that the credential is not available.
 Such might be the case for anonymous or guest access.
@@ -347,6 +379,9 @@ u+x | File is archived
 g+x | File is system
 o+x | File is hidden
 
+So to set a file to readable and hidden, you would use o+wx, or mode `003`.
+This function is a Posix compatibility shim; if you want better control over file attributes, use the more powerful `xattr` functions.
+
 ### smbclient_utimes
 
 ```php
@@ -362,6 +397,8 @@ Beware of inconsistencies in how Samba stores and retrieves timestamps.
 When you change the mtime and atime for a file, then stat the file with `smbclient_stat`, the stat output will indicate that you changed ctime and mtime, in that order, instead.
 (This is likely a bug somewhere, but it's hard to pinpoint the cause.)
 When you use mount.cifs to mount the share and check the results of this function with the `stat` commandline tool, the `mtime` argument will set both the mtime and ctime, and the `atime` argument will set the atime.
+This is a Posix compatibility shim.
+Use the more powerful `xattr` functions if you need more control, such as setting the ctime.
 
 ### smbclient_listxattr
 
