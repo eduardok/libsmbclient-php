@@ -46,7 +46,7 @@ Contributions and bug reports
 If you encounter a bug or want to contribute, please file an [issue](https://github.com/eduardok/libsmbclient-php/issues) at GitHub.
 Sending pull requests on GitHub is the preferred method of contributing code, because Travis CI will automatically build and test your pull request.
 
-There is also a defunct [http://groups.google.com/group/libsmbclient-php](mailing list).
+There is also a defunct [mailing list](http://groups.google.com/group/libsmbclient-php).
 
 ## PHP interface
 
@@ -67,7 +67,7 @@ smb://user:password@server/share/path/to/file.txt
 ### Error handling
 
 As a low-level extension, libsmbclient-php does not throw exceptions.
-Instead, success or failure is communicated the old-fashioned way: by the function's return value.
+Success or failure is communicated the old-fashioned way, by the function's return value.
 You should always check if a function returns `false` for failure.
 If you really want exceptions, you can build your own high-level layer by translating return values and error codes to appropriate exceptions.
 
