@@ -50,8 +50,6 @@ There is also a defunct [mailing list](http://groups.google.com/group/libsmbclie
 
 ## PHP interface
 
-After loading this extension, the following functions will become available in PHP.
-
 ### URI's
 
 URI's have the format `smb://[[[workgroup;]user[:password@]]server[/share[/path[/file]]]]`.
@@ -87,18 +85,18 @@ For convenience, here's a non-exhaustive list of popular error codes:
 
 name | value | description
 ---- | ----- | -----------
-EPERM | 1 | Operation not permitted
-ENOENT | 2 | No such file or directory
-EBADF | 9 | Bad file or directory resource
-ENOMEM | 12 | Out of memory
-EACCES | 13 | Permissiond denied
-EBUSY | 16 | Device or resource busy
-EEXIST | 17 | Resource exists
-ENOTDIR | 20 | Not a directory
-EISDIR | 21 | Is a directory
-EINVAL | 22 | Invalid argument
-ENOSPC | 28 | No space left on device
-ENOTEMPTY | 39 | Directory not empty
+`EPERM` | 1 | Operation not permitted
+`ENOENT` | 2 | No such file or directory
+`EBADF` | 9 | Bad file or directory resource
+`ENOMEM` | 12 | Out of memory
+`EACCES` | 13 | Permission denied
+`EBUSY` | 16 | Device or resource busy
+`EEXIST` | 17 | Resource exists
+`ENOTDIR` | 20 | Not a directory
+`EISDIR` | 21 | Is a directory
+`EINVAL` | 22 | Invalid argument
+`ENOSPC` | 28 | No space left on device
+`ENOTEMPTY` | 39 | Directory not empty
 
 ### smbclient_state_new
 
@@ -449,3 +447,60 @@ bool smbclient_removexattr ( resource $state, string $uri, string $key )
 
 Removes the extended attribute with name `$key` from the file or directory pointed to by the URI.
 Returns `true` on success, `false` on failure.
+
+## Examples
+
+Some bare-bones examples of how to use libsmbclient-php.
+These have deliberately been kept simple.
+In production, you should at least check whether the extension has been loaded.
+Also, you should also check the return value of each function, and handle errors appropriately.
+
+List the contents of a directory:
+
+```php
+<?php
+
+// Create new state:
+$state = smbclient_state_new();
+
+// Initialize the state with workgroup, username and password:
+smbclient_state_init($state, null, 'testuser', 'password');
+
+// Open a directory:
+$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+
+// Loop over the directory contents, print each node:
+while (($entry = smbclient_readdir($state, $dir)) !== false) {
+	echo "{$entry['name']} : {$entry['type']}\n";
+}
+// Close the directory handle:
+smbclient_closedir($state, $dir);
+
+// Free the state:
+smbclient_state_free($state);
+```
+
+Dump a file to standard output:
+
+```php
+<?php
+
+// Create new state:
+$state = smbclient_state_new();
+
+// Initialize the state with workgroup, username and password:
+smbclient_state_init($state, null, 'testuser', 'password');
+
+// Open a file for reading:
+$file = smbclient_open($state, 'smb://localhost/testshare/testdir/testfile.txt', 'r');
+
+// Read the file incrementally, dump contents to output:
+while ($data = smbclient_read($state, $file, 100000)) {
+	echo $data;
+}
+// Close the file handle:
+smbclient_close($state, $file);
+
+// Free the state:
+smbclient_state_free($state);
+```
