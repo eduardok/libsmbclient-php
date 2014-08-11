@@ -97,6 +97,7 @@ name | value | description
 `EINVAL` | 22 | Invalid argument
 `ENOSPC` | 28 | No space left on device
 `ENOTEMPTY` | 39 | Directory not empty
+`ECONNREFUSED` | 111 | Connection refused (Samba not running?)
 
 ### smbclient_state_new
 
@@ -434,8 +435,8 @@ You can also set `flags` to one of these values:
 
 Constant | description
 -------- | -----------
-SMBCLIENT_XATTR_CREATE | Only create the attribute: fail with `EEXIST` if it already exists
-SMBCLIENT_XATTR_REPLACE | Only replace the attribute: fail with `ENOATTR` if it does not exist
+`SMBCLIENT_XATTR_CREATE` | Only create the attribute: fail with `EEXIST` if it already exists
+`SMBCLIENT_XATTR_REPLACE` | Only replace the attribute: fail with `ENOATTR` if it does not exist
 
 Returns `true` on success, `false` on failure.
 
@@ -495,7 +496,11 @@ smbclient_state_init($state, null, 'testuser', 'password');
 $file = smbclient_open($state, 'smb://localhost/testshare/testdir/testfile.txt', 'r');
 
 // Read the file incrementally, dump contents to output:
-while ($data = smbclient_read($state, $file, 100000)) {
+while (true) {
+	$data = smbclient_read($state, $file, 2);
+	if ($data === false || strlen($data) === 0) {
+		break;
+	}
 	echo $data;
 }
 // Close the file handle:
