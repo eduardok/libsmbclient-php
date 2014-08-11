@@ -30,7 +30,7 @@
 
 #include <libsmbclient.h>
 
-#define LIBSMBCLIENT_VERSION	"0.4"
+#define LIBSMBCLIENT_VERSION	"0.5.0"
 
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own copy of
  * the php_libsmbclient_globals structure. Else we use a single global copy: */
