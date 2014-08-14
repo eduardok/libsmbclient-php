@@ -34,6 +34,8 @@ PHP_FUNCTION(smbclient_state_new);
 PHP_FUNCTION(smbclient_state_init);
 PHP_FUNCTION(smbclient_state_errno);
 PHP_FUNCTION(smbclient_state_free);
+PHP_FUNCTION(smbclient_option_get);
+PHP_FUNCTION(smbclient_option_set);
 PHP_FUNCTION(smbclient_opendir);
 PHP_FUNCTION(smbclient_readdir);
 PHP_FUNCTION(smbclient_closedir);

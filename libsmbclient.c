@@ -65,6 +65,28 @@ php_libsmbclient_state;
 static int le_libsmbclient_state;
 static int le_libsmbclient_file;
 
+enum {
+	SMBCLIENT_OPT_OPEN_SHAREMODE = 1,
+	SMBCLIENT_OPT_ENCRYPT_LEVEL = 2,
+	SMBCLIENT_OPT_CASE_SENSITIVE = 3,
+	SMBCLIENT_OPT_BROWSE_MAX_LMB_COUNT = 4,
+	SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES = 5,
+	/* Ignore OneSharePerServer, not relevant to us. */
+	SMBCLIENT_OPT_USE_KERBEROS = 6,
+	SMBCLIENT_OPT_FALLBACK_AFTER_KERBEROS = 7,
+	/* Reverse the sense of this option, the original
+	 * is the confusing "NoAutoAnonymousLogin": */
+	SMBCLIENT_OPT_AUTO_ANONYMOUS_LOGIN = 8,
+	SMBCLIENT_OPT_USE_CCACHE = 9,
+	SMBCLIENT_OPT_USE_NT_HASH = 10,
+	SMBCLIENT_OPT_NETBIOS_NAME = 11,
+	SMBCLIENT_OPT_WORKGROUP = 12,
+	SMBCLIENT_OPT_USER = 13,
+	SMBCLIENT_OPT_PORT = 14,
+	SMBCLIENT_OPT_TIMEOUT = 15,
+}
+php_libsmbclient_options;
+
 static char *
 find_char (char *start, char *last, char q)
 {
@@ -133,6 +155,8 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_state_init, NULL)
 	PHP_FE(smbclient_state_errno, NULL)
 	PHP_FE(smbclient_state_free, NULL)
+	PHP_FE(smbclient_option_get, NULL)
+	PHP_FE(smbclient_option_set, NULL)
 	PHP_FE(smbclient_opendir, NULL)
 	PHP_FE(smbclient_readdir, NULL)
 	PHP_FE(smbclient_closedir, NULL)
@@ -264,6 +288,38 @@ PHP_MINIT_FUNCTION(smbclient)
 	/* Constants for smbclient_setxattr: */
 	REGISTER_LONG_CONSTANT("SMBCLIENT_XATTR_CREATE", SMBC_XATTR_FLAG_CREATE, CONST_PERSISTENT | CONST_CS);
 	REGISTER_LONG_CONSTANT("SMBCLIENT_XATTR_REPLACE", SMBC_XATTR_FLAG_REPLACE, CONST_PERSISTENT | CONST_CS);
+
+	/* Constants for getting/setting options: */
+	#define SMBCLIENT_CONST(x) REGISTER_LONG_CONSTANT(#x, x, CONST_PERSISTENT | CONST_CS);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_OPEN_SHAREMODE);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_ENCRYPT_LEVEL);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_CASE_SENSITIVE);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_BROWSE_MAX_LMB_COUNT);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_USE_KERBEROS);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_FALLBACK_AFTER_KERBEROS);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_AUTO_ANONYMOUS_LOGIN);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_USE_CCACHE);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_USE_NT_HASH);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_NETBIOS_NAME);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_WORKGROUP);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_USER);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_PORT);
+	SMBCLIENT_CONST(SMBCLIENT_OPT_TIMEOUT);
+	#undef SMBCLIENT_CONST
+
+	/* Constants for use with SMBCLIENT_OPT_OPENSHAREMODE: */
+	REGISTER_LONG_CONSTANT("SMBCLIENT_SHAREMODE_DENY_DOS", SMBC_SHAREMODE_DENY_DOS, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_SHAREMODE_DENY_ALL", SMBC_SHAREMODE_DENY_ALL, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_SHAREMODE_DENY_WRITE", SMBC_SHAREMODE_DENY_WRITE, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_SHAREMODE_DENY_READ", SMBC_SHAREMODE_DENY_READ, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_SHAREMODE_DENY_NONE", SMBC_SHAREMODE_DENY_NONE, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_SHAREMODE_DENY_FCB", SMBC_SHAREMODE_DENY_FCB, CONST_PERSISTENT | CONST_CS);
+
+	/* Constants for use with SMBCLIENT_OPT_ENCRYPTLEVEL: */
+	REGISTER_LONG_CONSTANT("SMBCLIENT_ENCRYPTLEVEL_NONE", SMBC_ENCRYPTLEVEL_NONE, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_ENCRYPTLEVEL_REQUEST", SMBC_ENCRYPTLEVEL_REQUEST, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_ENCRYPTLEVEL_REQUIRE", SMBC_ENCRYPTLEVEL_REQUIRE, CONST_PERSISTENT | CONST_CS);
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
 	le_libsmbclient_file = zend_register_list_destructors_ex(smbclient_file_dtor, NULL, PHP_LIBSMBCLIENT_FILE_NAME, module_number);
@@ -1341,6 +1397,198 @@ PHP_FUNCTION(smbclient_removexattr)
 		case ENOTSUP: php_error(E_WARNING, "Couldn't remove attribute on %s: not supported by filesystem", url); break;
 		case EPERM: php_error(E_WARNING, "Couldn't remove attribute on %s: permission denied", url); break;
 		default: php_error(E_WARNING, "Couldn't remove attribute on %s: unknown error (%d)", url, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_option_get)
+{
+	long option;
+	char *ret;
+	zval *zstate;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &option) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	switch (option)
+	{
+	case SMBCLIENT_OPT_OPEN_SHAREMODE:
+		RETURN_LONG(smbc_getOptionOpenShareMode(state->ctx));
+
+	case SMBCLIENT_OPT_ENCRYPT_LEVEL:
+		RETURN_LONG(smbc_getOptionSmbEncryptionLevel(state->ctx));
+
+	case SMBCLIENT_OPT_CASE_SENSITIVE:
+		RETURN_BOOL(smbc_getOptionCaseSensitive(state->ctx));
+
+	case SMBCLIENT_OPT_BROWSE_MAX_LMB_COUNT:
+		RETURN_LONG(smbc_getOptionBrowseMaxLmbCount(state->ctx));
+
+	case SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES:
+		RETURN_BOOL(smbc_getOptionUrlEncodeReaddirEntries(state->ctx));
+
+	case SMBCLIENT_OPT_USE_KERBEROS:
+		RETURN_BOOL(smbc_getOptionUseKerberos(state->ctx));
+
+	case SMBCLIENT_OPT_FALLBACK_AFTER_KERBEROS:
+		RETURN_BOOL(smbc_getOptionFallbackAfterKerberos(state->ctx));
+
+	/* Reverse the sense of this option, the original is confusing: */
+	case SMBCLIENT_OPT_AUTO_ANONYMOUS_LOGIN:
+		RETURN_BOOL(!(smbc_getOptionNoAutoAnonymousLogin(state->ctx)));
+
+	case SMBCLIENT_OPT_USE_CCACHE:
+		RETURN_BOOL(smbc_getOptionUseCCache(state->ctx));
+
+	#ifdef HAVE_SMBC_SETOPTIONUSENTHASH
+	case SMBCLIENT_OPT_USE_NT_HASH:
+		RETURN_BOOL(smbc_getOptionUseNTHash(state->ctx));
+	#endif
+
+	#ifdef HAVE_SMBC_SETPORT
+	case SMBCLIENT_OPT_PORT:
+		RETURN_LONG(smbc_getPort(state->ctx));
+	#endif
+
+	case SMBCLIENT_OPT_TIMEOUT:
+		RETURN_LONG(smbc_getTimeout(state->ctx));
+
+	case SMBCLIENT_OPT_NETBIOS_NAME:
+		if ((ret = smbc_getNetbiosName(state->ctx)) == NULL) {
+			RETURN_EMPTY_STRING();
+		}
+		if (strlen(ret) == 0) {
+			RETURN_EMPTY_STRING();
+		}
+		RETURN_STRING(ret, 1);
+
+	case SMBCLIENT_OPT_WORKGROUP:
+		if ((ret = smbc_getWorkgroup(state->ctx)) == NULL) {
+			RETURN_EMPTY_STRING();
+		}
+		if (strlen(ret) == 0) {
+			RETURN_EMPTY_STRING();
+		}
+		RETURN_STRING(ret, 1);
+
+	case SMBCLIENT_OPT_USER:
+		if ((ret = smbc_getUser(state->ctx)) == NULL) {
+			RETURN_EMPTY_STRING();
+		}
+		if (strlen(ret) == 0) {
+			RETURN_EMPTY_STRING();
+		}
+		RETURN_STRING(ret, 1);
+	}
+	RETURN_NULL();
+}
+
+PHP_FUNCTION(smbclient_option_set)
+{
+	long option;
+	zval *zstate;
+	zval *zvalue;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rlz", &zstate, &option, &zvalue) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	switch (Z_TYPE_P(zvalue))
+	{
+	case IS_BOOL:
+
+		switch (option)
+		{
+		case SMBCLIENT_OPT_CASE_SENSITIVE:
+			smbc_setOptionCaseSensitive(state->ctx, Z_BVAL_P(zvalue));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES:
+			smbc_setOptionUrlEncodeReaddirEntries(state->ctx, Z_BVAL_P(zvalue));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_USE_KERBEROS:
+			smbc_setOptionUseKerberos(state->ctx, Z_BVAL_P(zvalue));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_FALLBACK_AFTER_KERBEROS:
+			smbc_setOptionFallbackAfterKerberos(state->ctx, Z_BVAL_P(zvalue));
+			RETURN_TRUE;
+
+		/* Reverse the sense of this option: */
+		case SMBCLIENT_OPT_AUTO_ANONYMOUS_LOGIN:
+			smbc_setOptionNoAutoAnonymousLogin(state->ctx, !(Z_BVAL_P(zvalue)));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_USE_CCACHE:
+			smbc_setOptionUseCCache(state->ctx, Z_BVAL_P(zvalue));
+			RETURN_TRUE;
+
+		#ifdef HAVE_SMBC_SETOPTIONUSENTHASH
+		case SMBCLIENT_OPT_USE_NT_HASH:
+			smbc_setOptionUseNTHash(state->ctx, Z_BVAL_P(zvalue));
+			RETURN_TRUE;
+		#endif
+		}
+		break;
+
+	case IS_LONG:
+
+		switch (option)
+		{
+		case SMBCLIENT_OPT_OPEN_SHAREMODE:
+			smbc_setOptionOpenShareMode(state->ctx, Z_LVAL_P(zvalue));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_ENCRYPT_LEVEL:
+			smbc_setOptionSmbEncryptionLevel(state->ctx, Z_LVAL_P(zvalue));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_BROWSE_MAX_LMB_COUNT:
+			smbc_setOptionBrowseMaxLmbCount(state->ctx, Z_LVAL_P(zvalue));
+			RETURN_TRUE;
+
+		#ifdef HAVE_SMBC_SETPORT
+		case SMBCLIENT_OPT_PORT:
+			smbc_setPort(state->ctx, Z_LVAL_P(zvalue));
+			RETURN_TRUE;
+		#endif
+
+		case SMBCLIENT_OPT_TIMEOUT:
+			smbc_setTimeout(state->ctx, Z_LVAL_P(zvalue));
+			RETURN_TRUE;
+		}
+		break;
+
+	case IS_STRING:
+
+		switch (option)
+		{
+		case SMBCLIENT_OPT_NETBIOS_NAME:
+			smbc_setNetbiosName(state->ctx, Z_STRVAL_P(zvalue));
+			RETURN_TRUE;
+
+		/* For the next two options, update our state object as well: */
+		case SMBCLIENT_OPT_WORKGROUP:
+			if (ctx_init_getauth(zvalue, &state->wrkg, &state->wrkglen, "workgroup") == 0) {
+				RETURN_FALSE;
+			}
+			smbc_setWorkgroup(state->ctx, Z_STRVAL_P(zvalue));
+			RETURN_TRUE;
+
+		case SMBCLIENT_OPT_USER:
+			if (ctx_init_getauth(zvalue, &state->user, &state->userlen, "username") == 0) {
+				RETURN_FALSE;
+			}
+			smbc_setUser(state->ctx, Z_STRVAL_P(zvalue));
+			RETURN_TRUE;
+		}
+		break;
 	}
 	RETURN_FALSE;
 }

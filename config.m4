@@ -54,6 +54,26 @@ if test "$PHP_LIBSMBCLIENT" != "no"; then
 
   fi
 
+  dnl Check for smbc_setOptionUseNTHash;
+  dnl a relatively recent addition that is not available in our Travis test environment:
+  PHP_CHECK_LIBRARY(smbclient, smbc_setOptionUseNTHash,
+  [
+    AC_DEFINE(HAVE_SMBC_SETOPTIONUSENTHASH, 1, [Whether smbc_setOptionUseNTHash is available])
+  ], [
+  ], [
+    -lsmbclient
+  ])
+
+  dnl Check for smbc_setPort;
+  dnl a relatively recent addition that is not available in our Travis test environment:
+  PHP_CHECK_LIBRARY(smbclient, smbc_setPort,
+  [
+    AC_DEFINE(HAVE_SMBC_SETPORT, 1, [Whether smbc_setPort is available])
+  ], [
+  ], [
+    -lsmbclient
+  ])
+
   PHP_SUBST(LIBSMBCLIENT_SHARED_LIBADD)
   PHP_NEW_EXTENSION(libsmbclient, libsmbclient.c, $ext_shared)
 
