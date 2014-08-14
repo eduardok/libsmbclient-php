@@ -313,6 +313,9 @@ Reads data from a file resource obtained through `smbclient_open` or `smbclient_
 Tries to read the amount of bytes given in `$bytes`, but may return less.
 Returns a string longer than 0 bytes on success, a string of 0 bytes on end-of-file, or `false` on failure.
 
+Checking the string length to figure out EOF is primitive, but libsmbclient does not expose an `feof` equivalent.
+`strlen` in PHP is relatively efficient because PHP tracks string lengths internally.
+
 ### smbclient_write
 
 ```php
@@ -497,7 +500,7 @@ $file = smbclient_open($state, 'smb://localhost/testshare/testdir/testfile.txt',
 
 // Read the file incrementally, dump contents to output:
 while (true) {
-	$data = smbclient_read($state, $file, 2);
+	$data = smbclient_read($state, $file, 100000);
 	if ($data === false || strlen($data) === 0) {
 		break;
 	}
