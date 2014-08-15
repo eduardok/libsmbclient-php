@@ -113,7 +113,129 @@ Returns a state resource on success, or `false` on failure.
 The state resource holds persistent data about the current server connection, so that the backend can reuse the existing channel instead of reconnecting for every operation.
 The state resource must be passed on to most of the other functions in this extension.
 Before using the state resource in other functions, it must be initialized by calling `smbclient_state_init`.
+Between creating and initializing the resource, you can set certain options for the connection with `smbclient_option_set`.
 The state resource should be released when you're done with it by passing it to `smbclient_state_free` (although PHP will auto-destroy it when it goes out of scope).
+
+### smbclient_option_set
+
+```php
+bool smbclient_option_set ( resource $state, int option, mixed value )
+```
+
+Sets the value of an option to `libsmbclient`.
+Returns `true` if setting the option succeeded, `false` on failure.
+This function should be called before calling `smbclient_state_init` on your context.
+The second argument should be one of the constants below:
+
+* `SMBCLIENT_OPT_OPEN_SHAREMODE`
+
+  The share mode to use when opening files.
+  The value can be one of these constants:
+  * `SMBCLIENT_SHAREMODE_DENY_DOS`
+  * `SMBCLIENT_SHAREMODE_DENY_ALL`
+  * `SMBCLIENT_SHAREMODE_DENY_WRITE`
+  * `SMBCLIENT_SHAREMODE_DENY_READ`
+  * `SMBCLIENT_SHAREMODE_DENY_NONE`
+  * `SMBCLIENT_SHAREMODE_DENY_FCB`
+
+  The default is `SMBCLIENT_SHAREMODE_DENY_NONE`.
+
+* `SMBCLIENT_OPT_ENCRYPT_LEVEL`
+
+  The encryption level to adopt for the connection.
+  The value can be one of these constants:
+  * `SMBCLIENT_ENCRYPTLEVEL_NONE`
+  * `SMBCLIENT_ENCRYPTLEVEL_REQUEST`
+  * `SMBCLIENT_ENCRYPTLEVEL_REQUIRE`
+
+* `SMBCLIENT_OPT_CASE_SENSITIVE`
+
+  Boolean.
+  What to do when we can't determine from the file system attributes whether the file system is case sensitive.
+  Assume that the filesystem is case sensitive (`true`), or that it isn't (`false`).
+  Defaults to `false`, because only really old file systems aren't autodetected, and most of those are case insensitive.
+
+* `SMBCLIENT_OPT_BROWSE_MAX_LMB_COUNT`
+
+  From how many servers to retrieve the list of workgroups, if you're doing that.
+  See Samba's `libsmbclient.h` for details.
+
+* `SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES`
+
+  Boolean.
+  Whether the entries returned by `smbclient_readdir` are urlencoded.
+  Defaults to `false`, the entries are returned "raw".
+
+* `SMBCLIENT_OPT_USE_KERBEROS`
+
+  Boolean.
+  Whether to use Kerberos authentication.
+
+* `SMBCLIENT_OPT_FALLBACK_AFTER_KERBEROS`
+
+  Boolean.
+  Whether to fall back on regular authentication if Kerberos didn't work out.
+  The regular username and password given in `smbclient_state_init` will be queried.
+
+* `SMBCLIENT_OPT_AUTO_ANONYMOUS_LOGIN`
+
+  Boolean.
+  Whether to automatically select anonymous login.
+
+* `SMBCLIENT_OPT_USE_CCACHE`
+
+  Boolean.
+  Whether to use the Winbind cache.
+
+* `SMBCLIENT_OPT_USE_NT_HASH`
+
+  Boolean.
+  Whether the password supplied in `smbclient_state_init` is actually an NT hash.
+  If you set this to `true` and work with NT hashes, you can avoid passing around plaintext passwords.
+
+  The `smbc_getOptionUseNTHash` function is relatively new to libsmbclient (June 2012), so the configure script tests whether your libsmbclient has that symbol, and conditionally activates this option.
+  If the option is not available, trying to set it will return `false`.
+
+* `SMBCLIENT_OPT_NETBIOS_NAME`
+
+  String.
+  The NetBIOS (host) name used for making connections.
+
+* `SMBCLIENT_OPT_WORKGROUP`
+
+  String.
+  The workgroup used for making connections.
+
+* `SMBCLIENT_OPT_USER`
+
+  String.
+  The username used to make connections.
+  This appears to be something different from the username given in `smbclient_state_init`, and appears to correspond to the system user running PHP.
+
+* `SMBCLIENT_OPT_PORT`
+
+  Int.
+  The TCP port to connect to.
+  `0` means "use the default".
+
+  The `smbc_setPort` function is relatively new to libsmbclient (April 2013), so the configure script tests whether your libsmbclient has that symbol, and conditionally activates this option.
+  If the option is not available, trying to set it will return `false`.
+
+* `SMBCLIENT_OPT_TIMEOUT`
+
+  Int.
+  The timeout value for connections and responses in milliseconds.
+
+### smbclient_option_get
+
+```php
+mixed smbclient_option_get ( resource $state, int option )
+```
+
+This is a mirror function of `smbclient_option_set`.
+Everything settable is also gettable.
+See that function for the description of the available options and their return types/values.
+If a given option is not available, this function will return `null` and not `false`, to distinguish it from an option's legitimate `false` value.
 
 ### smbclient_state_init
 
@@ -124,7 +246,6 @@ bool smbclient_state_init ( resource $state [, string $workgroup = null [, strin
 Initialize the smbclient state resource.
 Returns `true` on success, `false` on failure.
 Before using the state resource in other functions, it must be initialized.
-Between creating and initializing the resource, you can set certain options for the connection (not implemented yet).
 Workgroup, username and password are optional parameters.
 You can specify any of them as `null` or `false` to indicate that the credential is not available.
 Such might be the case for anonymous or guest access.
@@ -180,7 +301,8 @@ array(
 ```
 
 Comment and name are passed through from libsmbclient.
-The name is *not* in urlencoded format, it's been decoded for convenience.
+By default, the name is *not* returned in urlencoded format, it's been decoded for convenience.
+You can toggle that by setting the `SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES` option to `true`.
 `type` is one of the following strings:
 
 * `'workgroup'`
