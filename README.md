@@ -53,6 +53,8 @@ There is also a defunct [mailing list](http://groups.google.com/group/libsmbclie
 ### URI's
 
 URI's have the format `smb://[[[workgroup;]user[:password@]]server[/share[/path[/file]]]]`.
+They should be urlencoded to escape special characters.
+Use PHP's [`rawurlencode`](http://php.net/manual/en/function.rawurlencode.php) function to encode an URI.
 If you need to specify a workgroup, username or password, you can either include them in the URI, or specify them when you create a state resource.
 Examples of valid URI's:
 
@@ -60,6 +62,7 @@ Examples of valid URI's:
 smb://server
 smb://server/share
 smb://user:password@server/share/path/to/file.txt
+smb://server/share/Moscow%20is%20written%20%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0.txt
 ```
 
 ### Error handling
@@ -177,6 +180,7 @@ array(
 ```
 
 Comment and name are passed through from libsmbclient.
+The name is *not* in urlencoded format, it's been decoded for convenience.
 `type` is one of the following strings:
 
 * `'workgroup'`
@@ -457,7 +461,7 @@ Returns `true` on success, `false` on failure.
 Some bare-bones examples of how to use libsmbclient-php.
 These have deliberately been kept simple.
 In production, you should at least check whether the extension has been loaded.
-Also, you should also check the return value of each function, and handle errors appropriately.
+Also, you should urlencode your URI's, check the return value of each function, and handle errors appropriately.
 
 List the contents of a directory:
 
