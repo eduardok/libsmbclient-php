@@ -317,6 +317,9 @@ PHP_FUNCTION(smbclient_state_new)
 	 * find the state from the context in the auth function: */
 	smbc_setOptionUserData(ctx, (void *)state);
 
+	/* Force full, modern timenames when getting xattrs: */
+	smbc_setOptionFullTimeNames(state->ctx, 1);
+
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
 }
 
