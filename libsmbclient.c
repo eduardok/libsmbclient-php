@@ -151,6 +151,8 @@ hide_password (char *url, int len)
 
 static zend_function_entry libsmbclient_functions[] =
 {
+	PHP_FE(smbclient_version, NULL)
+	PHP_FE(smbclient_library_version, NULL)
 	PHP_FE(smbclient_state_new, NULL)
 	PHP_FE(smbclient_state_init, NULL)
 	PHP_FE(smbclient_state_errno, NULL)
@@ -412,6 +414,16 @@ ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
 			php_error(E_WARNING, "invalid datatype for %s", varname);
 			return 0;
 	}
+}
+
+PHP_FUNCTION(smbclient_version)
+{
+	RETURN_STRING(LIBSMBCLIENT_VERSION, 1);
+}
+
+PHP_FUNCTION(smbclient_library_version)
+{
+	RETURN_STRING(smbc_version(), 1);
 }
 
 PHP_FUNCTION(smbclient_state_init)

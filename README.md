@@ -102,6 +102,22 @@ name | value | description
 `ENOTEMPTY` | 39 | Directory not empty
 `ECONNREFUSED` | 111 | Connection refused (Samba not running?)
 
+### smbclient_version
+
+```php
+string smbclient_version ( )
+```
+
+Returns libsmbclient-php's own version string.
+
+### smbclient_library_version
+
+```php
+string smbclient_library_version ( )
+```
+
+Returns libsmbclient's version string, which is the same as the Samba version string.
+
 ### smbclient_state_new
 
 ```php

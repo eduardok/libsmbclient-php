@@ -30,6 +30,8 @@ PHP_MINIT_FUNCTION(smbclient);
 PHP_MSHUTDOWN_FUNCTION(smbclient);
 PHP_RINIT_FUNCTION(smbclient);
 PHP_MINFO_FUNCTION(smbclient);
+PHP_FUNCTION(smbclient_version);
+PHP_FUNCTION(smbclient_library_version);
 PHP_FUNCTION(smbclient_state_new);
 PHP_FUNCTION(smbclient_state_init);
 PHP_FUNCTION(smbclient_state_errno);
