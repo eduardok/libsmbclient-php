@@ -15,7 +15,7 @@ before_install:
     [testshare]
     comment = testshare
     path = /home/testuser/testshare
-    guest ok = yes
+    guest ok = no
     read only = no
     map archive = yes
     map system = yes

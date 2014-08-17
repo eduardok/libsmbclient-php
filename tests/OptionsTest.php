@@ -103,4 +103,25 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 
 		unlink('/home/testuser/testshare/readdir%option.txt');
 	}
+
+	public function
+	testOptionNTHash ()
+	{
+		$state = smbclient_state_new();
+
+		if (smbclient_option_get($state, SMBCLIENT_OPT_USE_NT_HASH) === null) {
+			smbclient_state_free($state);
+			return;
+		}
+		smbclient_option_set($state, SMBCLIENT_OPT_USE_NT_HASH, true);
+
+		// NTLM hash of 'password' generated at http://www.tobtu.com/lmntlm.php
+		smbclient_state_init($state, null, 'testuser', '8846F7EAEE8FB117AD06BDD830B7586C');
+
+		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		while (($out = smbclient_readdir($state, $dir)) !== false);
+		$this->assertTrue(is_resource($dir));
+		smbclient_closedir($state, $dir);
+		smbclient_state_free($state);
+	}
 }
