@@ -181,6 +181,8 @@ static zend_function_entry libsmbclient_functions[] =
 	PHP_FE(smbclient_getxattr, NULL)
 	PHP_FE(smbclient_setxattr, NULL)
 	PHP_FE(smbclient_removexattr, NULL)
+	PHP_FE(smbclient_statvfs, NULL)
+	PHP_FE(smbclient_fstatvfs, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -322,6 +324,12 @@ PHP_MINIT_FUNCTION(smbclient)
 	REGISTER_LONG_CONSTANT("SMBCLIENT_ENCRYPTLEVEL_NONE", SMBC_ENCRYPTLEVEL_NONE, CONST_PERSISTENT | CONST_CS);
 	REGISTER_LONG_CONSTANT("SMBCLIENT_ENCRYPTLEVEL_REQUEST", SMBC_ENCRYPTLEVEL_REQUEST, CONST_PERSISTENT | CONST_CS);
 	REGISTER_LONG_CONSTANT("SMBCLIENT_ENCRYPTLEVEL_REQUIRE", SMBC_ENCRYPTLEVEL_REQUIRE, CONST_PERSISTENT | CONST_CS);
+
+	/* Constants for the VFS functions: */
+	REGISTER_LONG_CONSTANT("SMBCLIENT_VFS_RDONLY", SMBC_VFS_FEATURE_RDONLY, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_VFS_DFS", SMBC_VFS_FEATURE_DFS, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_VFS_CASE_INSENSITIVE", SMBC_VFS_FEATURE_CASE_INSENSITIVE, CONST_PERSISTENT | CONST_CS);
+	REGISTER_LONG_CONSTANT("SMBCLIENT_VFS_NO_UNIXCIFS", SMBC_VFS_FEATURE_NO_UNIXCIFS, CONST_PERSISTENT | CONST_CS);
 
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
 	le_libsmbclient_file = zend_register_list_destructors_ex(smbclient_file_dtor, NULL, PHP_LIBSMBCLIENT_FILE_NAME, module_number);
@@ -1603,4 +1611,94 @@ PHP_FUNCTION(smbclient_option_set)
 		break;
 	}
 	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_statvfs)
+{
+	char *url;
+	int url_len;
+	zval *zstate;
+	struct statvfs st;
+	smbc_statvfs_fn smbc_statvfs;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &url, &url_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_statvfs = smbc_getFunctionStatVFS(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_statvfs(state->ctx, url, &st) != 0) {
+		hide_password(url, url_len);
+		switch (state->err = errno) {
+			case EBADF: php_error(E_WARNING, "Couldn't statvfs %s: bad file descriptor", url); break;
+			case EACCES: php_error(E_WARNING, "Couldn't statvfs %s: permission denied", url); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't statvfs %s: library not initalized or otherwise invalid", url); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't statvfs %s: out of memory", url); break;
+			default: php_error(E_WARNING, "Couldn't statvfs %s: unknown error (%d)", url, errno); break;
+		}
+		RETURN_FALSE;
+	}
+	if (array_init(return_value) != SUCCESS) {
+		php_error(E_WARNING, "Couldn't initialize array");
+		RETURN_FALSE;
+	}
+	add_assoc_long(return_value, "bsize",   st.f_bsize);
+	add_assoc_long(return_value, "frsize",  st.f_frsize);
+	add_assoc_long(return_value, "blocks",  st.f_blocks);
+	add_assoc_long(return_value, "bfree",   st.f_bfree);
+	add_assoc_long(return_value, "bavail",  st.f_bavail);
+	add_assoc_long(return_value, "files",   st.f_files);
+	add_assoc_long(return_value, "ffree",   st.f_ffree);
+	add_assoc_long(return_value, "favail",  st.f_favail);
+	add_assoc_long(return_value, "fsid",    st.f_fsid);
+	add_assoc_long(return_value, "flag",    st.f_flag);
+	add_assoc_long(return_value, "namemax", st.f_namemax);
+}
+
+PHP_FUNCTION(smbclient_fstatvfs)
+{
+	zval *zstate;
+	zval *zfile;
+	SMBCFILE *file;
+	struct statvfs st;
+	smbc_fstatvfs_fn smbc_fstatvfs;
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &zstate, &zfile) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+	FILE_FROM_ZFILE;
+
+	if ((smbc_fstatvfs = smbc_getFunctionFstatVFS(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if (smbc_fstatvfs(state->ctx, file, &st) != 0) {
+		switch (state->err = errno) {
+			case EBADF: php_error(E_WARNING, "Couldn't fstatvfs: bad file descriptor"); break;
+			case EACCES: php_error(E_WARNING, "Couldn't fstatvfs: permission denied"); break;
+			case EINVAL: php_error(E_WARNING, "Couldn't fstatvfs: library not initalized or otherwise invalid"); break;
+			case ENOMEM: php_error(E_WARNING, "Couldn't fstatvfs: out of memory"); break;
+			default: php_error(E_WARNING, "Couldn't fstatvfs: unknown error (%d)", errno); break;
+		}
+		RETURN_FALSE;
+	}
+	if (array_init(return_value) != SUCCESS) {
+		php_error(E_WARNING, "Couldn't initialize array");
+		RETURN_FALSE;
+	}
+	add_assoc_long(return_value, "bsize",   st.f_bsize);
+	add_assoc_long(return_value, "frsize",  st.f_frsize);
+	add_assoc_long(return_value, "blocks",  st.f_blocks);
+	add_assoc_long(return_value, "bfree",   st.f_bfree);
+	add_assoc_long(return_value, "bavail",  st.f_bavail);
+	add_assoc_long(return_value, "files",   st.f_files);
+	add_assoc_long(return_value, "ffree",   st.f_ffree);
+	add_assoc_long(return_value, "favail",  st.f_favail);
+	add_assoc_long(return_value, "fsid",    st.f_fsid);
+	add_assoc_long(return_value, "flag",    st.f_flag);
+	add_assoc_long(return_value, "namemax", st.f_namemax);
 }

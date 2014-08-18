@@ -594,6 +594,44 @@ bool smbclient_removexattr ( resource $state, string $uri, string $key )
 Removes the extended attribute with name `$key` from the file or directory pointed to by the URI.
 Returns `true` on success, `false` on failure.
 
+### smbclient_statvfs
+
+```php
+array smbclient_statvfs ( resource $state, string $uri )
+```
+
+Returns an array with file system statistics for the given URI, or `false` on failure.
+The array contains the keys listed below, each with an integer value.
+See the manpage for the Unix `statvfs` function for more information on how to interpret the values.
+
+* `bsize`: file system block size;
+* `frsize`: fragment size;
+* `blocks`: size of filesystem in `frsize` units;
+* `bfree`: number of free blocks;
+* `bavail`: number of free blocks for unprivileged users;
+* `files`: number of inodes;
+* `ffree`: number of free inodes;
+* `favail`: number of free inodes for unprivileged users;
+* `fsid`: file system ID;
+* `flag`: mount flags;
+* `namemax`: maximum filename length.
+
+The `flag` value can contain a boolean `OR` of the following constants:
+
+* `SMBCLIENT_VFS_RDONLY`;
+* `SMBCLIENT_VFS_DFS`;
+* `SMBCLIENT_VFS_CASE_INSENSITIVE`;
+* `SMBCLIENT_VFS_NO_UNIXCIFS`;
+
+### smbclient_fstatvfs
+
+```php
+array smbclient_fstatvfs ( resource $state, resource $file_or_dir )
+```
+
+Returns an array with file system statistics for the given file or directory resource, or `false` on failure.
+See `smbclient_statvfs` for a description of the returned array.
+
 ## Examples
 
 Some bare-bones examples of how to use libsmbclient-php.
