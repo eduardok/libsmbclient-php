@@ -34,6 +34,12 @@ make
 sudo make install
 ```
 
+- Or for packaging purposes, install to a specific root directory:
+
+```sh
+make install INSTALL_ROOT=/tmp/smbc
+```
+
 - Activate libsmbclient-php in php.ini:
 
 ```sh
