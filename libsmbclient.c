@@ -690,10 +690,26 @@ PHP_FUNCTION(smbclient_opendir)
 	RETURN_FALSE;
 }
 
+static char *
+type_to_string (unsigned int type)
+{
+	switch (type) {
+		case SMBC_WORKGROUP	: return "workgroup";
+		case SMBC_SERVER	: return "server";
+		case SMBC_FILE_SHARE	: return "file share";
+		case SMBC_PRINTER_SHARE	: return "printer share";
+		case SMBC_COMMS_SHARE	: return "communication share";
+		case SMBC_IPC_SHARE	: return "IPC share";
+		case SMBC_DIR		: return "directory";
+		case SMBC_FILE		: return "file";
+		case SMBC_LINK		: return "link";
+	}
+	return "unknown";
+}
+
 PHP_FUNCTION(smbclient_readdir)
 {
 	struct smbc_dirent *dirent;
-	char *type;
 	zval *zstate;
 	zval *zfile;
 	SMBCFILE *file;
@@ -723,19 +739,7 @@ PHP_FUNCTION(smbclient_readdir)
 		php_error(E_WARNING, "Couldn't initialize array");
 		RETURN_FALSE;
 	}
-	switch (dirent->smbc_type) {
-		case SMBC_WORKGROUP: type = "workgroup"; break;
-		case SMBC_SERVER: type = "server"; break;
-		case SMBC_FILE_SHARE: type = "file share"; break;
-		case SMBC_PRINTER_SHARE: type = "printer share"; break;
-		case SMBC_COMMS_SHARE: type = "communication share"; break;
-		case SMBC_IPC_SHARE: type = "IPC share"; break;
-		case SMBC_DIR: type = "directory"; break;
-		case SMBC_FILE: type = "file"; break;
-		case SMBC_LINK: type = "link"; break;
-		default: type = "unknown"; break;
-	}
-	add_assoc_string(return_value, "type", type, 1);
+	add_assoc_string(return_value, "type", type_to_string(dirent->smbc_type), 1);
 	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen, 1);
 	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
 }
