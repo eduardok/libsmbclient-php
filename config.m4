@@ -49,7 +49,7 @@ if test "$PHP_LIBSMBCLIENT" != "no"; then
     ],[
       AC_MSG_ERROR([Could not find libsmbclient.so or symbol smbc_open. Check config.log for more information.])
     ],[
-      -lsmbclient -lm -ldl
+      -lsmbclient
     ])
 
   fi
