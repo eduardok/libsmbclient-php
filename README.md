@@ -54,6 +54,13 @@ Sending pull requests on GitHub is the preferred method of contributing code, be
 
 There is also a defunct [mailing list](http://groups.google.com/group/libsmbclient-php).
 
+## License
+
+Since version 0.7.0, libsmbclient-php is licensed under the [BSD 2-clause](http://opensource.org/licenses/BSD-2-Clause) license.
+See [Issue #15](https://github.com/eduardok/libsmbclient-php/issues/15) for background.
+The full license text can be found in the `LICENSE` file.
+Before that, libsmbclient-php was licensed under the [PHP license, version 2.02](http://www.php.net/license/2_02.txt).
+
 ## PHP interface
 
 ### URI's
