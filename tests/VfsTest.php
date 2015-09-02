@@ -1,10 +1,12 @@
 <?php
 
-require_once dirname(__FILE__) . '/config.php.dist';
-
 class VfsTest extends PHPUnit_Framework_TestCase
 {
-	private $testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
+	private $testuri;
+
+	public function setup() {
+		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
+	}
 
 	public function
 	testHaveConstants ()

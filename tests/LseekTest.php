@@ -1,14 +1,17 @@
 <?php
 
-require_once dirname(__FILE__) . '/config.php.dist';
-
 class LseekTest extends PHPUnit_Framework_TestCase
 {
 	// The URI of the test file seen through Samba:
-	private $testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/lseektest.txt';
+	private $testuri;
 
 	// The "real" file on the filesystem:
-	private $realfile = SMB_LOCAL.'/lseektest.txt';
+	private $realfile;
+
+	public function setup() {
+		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/lseektest.txt';
+		$this->realfile = SMB_LOCAL.'/lseektest.txt';
+	}
 
 	public function
 	testLseekSet ()

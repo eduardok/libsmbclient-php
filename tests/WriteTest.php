@@ -1,7 +1,5 @@
 <?php
 
-require_once dirname(__FILE__) . '/config.php.dist';
-
 class WriteTest extends PHPUnit_Framework_TestCase
 {
 	private $testdata =
@@ -9,10 +7,15 @@ class WriteTest extends PHPUnit_Framework_TestCase
 		sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n";
 
 	// The URI of the test file seen through Samba:
-	private $testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/writetest.txt';
+	private $testuri;
 
 	// The "real" file on the filesystem:
-	private $realfile = SMB_LOCAL.'/writetest.txt';
+	private $realfile;
+
+	public function setup() {
+		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/writetest.txt';
+		$this->realfile = SMB_LOCAL.'/writetest.txt';
+	}
 
 	public function
 	testWriteSuccess ()
