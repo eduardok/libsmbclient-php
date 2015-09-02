@@ -351,7 +351,8 @@ PHP_MINFO_FUNCTION(smbclient)
 {
 	php_info_print_table_start();
 	php_info_print_table_row(2, "libsmbclient Support", "enabled");
-	php_info_print_table_row(2, "libsmbclient Version", LIBSMBCLIENT_VERSION);
+	php_info_print_table_row(2, "libsmbclient extension Version", LIBSMBCLIENT_VERSION);
+	php_info_print_table_row(2, "libsmbclient library Version", smbc_version());
 	php_info_print_table_end();
 }
 
