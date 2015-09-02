@@ -26,7 +26,7 @@ before_install:
   - sudo service smbd restart
   - testparm -s
   - ( echo password; echo password ) | sudo smbpasswd -s -a testuser
-  - wget https://phar.phpunit.de/phpunit.phar
+  - wget https://phar.phpunit.de/phpunit.phar -O ./phpunit.phar
 
 script:
   - phpize
@@ -34,4 +34,5 @@ script:
   - make
   - sudo make install
   - echo 'extension="libsmbclient.so"' | sudo tee -a /etc/php5/cli/php.ini
-  - /usr/bin/php phpunit.phar --verbose
+  - /usr/bin/php ./phpunit.phar --version
+  - /usr/bin/php ./phpunit.phar --verbose
