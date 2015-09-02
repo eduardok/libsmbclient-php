@@ -6,7 +6,7 @@ class StateInitTest extends PHPUnit_Framework_TestCase
 	testStateInitValid ()
 	{
 		$state = smbclient_state_new();
-		$this->assertTrue(smbclient_state_init($state, null, 'testuser', 'password'));
+		$this->assertTrue(smbclient_state_init($state, null, SMB_USER, SMB_PASS));
 	}
 
 	/**

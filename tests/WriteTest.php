@@ -7,16 +7,21 @@ class WriteTest extends PHPUnit_Framework_TestCase
 		sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n";
 
 	// The URI of the test file seen through Samba:
-	private $testuri = 'smb://localhost/testshare/writetest.txt';
+	private $testuri;
 
 	// The "real" file on the filesystem:
-	private $realfile = '/home/testuser/testshare/writetest.txt';
+	private $realfile;
+
+	public function setup() {
+		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/writetest.txt';
+		$this->realfile = SMB_LOCAL.'/writetest.txt';
+	}
 
 	public function
 	testWriteSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_creat($state, $this->testuri);
 		$this->assertTrue(is_resource($file));
 
@@ -36,7 +41,7 @@ class WriteTest extends PHPUnit_Framework_TestCase
 	testWritePartial ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_creat($state, $this->testuri);
 		$this->assertTrue(is_resource($file));
 
@@ -55,7 +60,7 @@ class WriteTest extends PHPUnit_Framework_TestCase
 	testWriteOversized ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_creat($state, $this->testuri);
 		$this->assertTrue(is_resource($file));
 

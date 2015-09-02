@@ -1,0 +1,13 @@
+<phpunit colors="true">
+  <php>
+     <const name="SMB_HOST"  value="localhost" />
+     <const name="SMB_USER"  value="testuser" />
+     <const name="SMB_PASS"  value="password" />
+     <const name="SMB_HASH"  value="8846F7EAEE8FB117AD06BDD830B7586C" />
+     <const name="SMB_SHARE" value="testshare" />
+     <const name="SMB_LOCAL" value="/home/testuser/testshare" />
+  </php>
+  <testsuite name="libsmbclient-php">
+    <directory suffix=".php">tests</directory>
+  </testsuite>
+</phpunit>

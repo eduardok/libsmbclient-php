@@ -6,24 +6,24 @@ class RenameTest extends PHPUnit_Framework_TestCase
 	testRenameFileSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 
 		// Create mock file "foo" via regular filesystem:
-		file_put_contents('/home/testuser/testshare/foo', 'this is a test');
+		file_put_contents(SMB_LOCAL.'/foo', 'this is a test');
 
-		$this->assertTrue(smbclient_rename($state, 'smb://localhost/testshare/foo', $state, 'smb://localhost/testshare/bar'));
+		$this->assertTrue(smbclient_rename($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/foo', $state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/bar'));
 
-		$moved = is_file('/home/testuser/testshare/bar');
+		$moved = is_file(SMB_LOCAL.'/bar');
 		$this->assertTrue($moved);
 
-		$gone = is_file('/home/testuser/testshare/foo');
+		$gone = is_file(SMB_LOCAL.'/foo');
 		$this->assertFalse($gone);
 
 		if ($moved) {
-			$this->assertEquals('this is a test', file_get_contents('/home/testuser/testshare/bar'));
+			$this->assertEquals('this is a test', file_get_contents(SMB_LOCAL.'/bar'));
 		}
-		@unlink('/home/testuser/testshare/foo');
-		@unlink('/home/testuser/testshare/bar');
+		@unlink(SMB_LOCAL.'/foo');
+		@unlink(SMB_LOCAL.'/bar');
 	}
 
 	/**
@@ -33,8 +33,8 @@ class RenameTest extends PHPUnit_Framework_TestCase
 	testRenameFileNotExists ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$this->assertFalse(smbclient_rename($state, 'smb://localhost/testshare/does-not-exist', $state, 'smb://localhost/testshare/somewhere-else'));
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$this->assertFalse(smbclient_rename($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/does-not-exist', $state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/somewhere-else'));
 		$this->assertEquals(2, smbclient_state_errno($state));	// ENOENT
 	}
 
@@ -42,20 +42,20 @@ class RenameTest extends PHPUnit_Framework_TestCase
 	testRenameDirSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 
 		// Create mock dir "foo" via regular filesystem:
-		mkdir('/home/testuser/testshare/foo');
+		mkdir(SMB_LOCAL.'/foo');
 
-		$this->assertTrue(smbclient_rename($state, 'smb://localhost/testshare/foo', $state, 'smb://localhost/testshare/bar'));
+		$this->assertTrue(smbclient_rename($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/foo', $state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/bar'));
 
-		$moved = is_dir('/home/testuser/testshare/bar');
+		$moved = is_dir(SMB_LOCAL.'/bar');
 		$this->assertTrue($moved);
 
-		$gone = is_dir('/home/testuser/testshare/foo');
+		$gone = is_dir(SMB_LOCAL.'/foo');
 		$this->assertFalse($gone);
 
-		@rmdir('/home/testuser/testshare/foo');
-		@rmdir('/home/testuser/testshare/bar');
+		@rmdir(SMB_LOCAL.'/foo');
+		@rmdir(SMB_LOCAL.'/bar');
 	}
 }

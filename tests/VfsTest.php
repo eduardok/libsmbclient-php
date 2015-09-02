@@ -2,7 +2,11 @@
 
 class VfsTest extends PHPUnit_Framework_TestCase
 {
-	private $testuri = 'smb://localhost/testshare/testdir/testfile.txt';
+	private $testuri;
+
+	public function setup() {
+		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
+	}
 
 	public function
 	testHaveConstants ()
@@ -27,7 +31,7 @@ class VfsTest extends PHPUnit_Framework_TestCase
 	testStatVFS ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 
 		$vfs = smbclient_statvfs($state, $this->testuri);
 
@@ -41,7 +45,7 @@ class VfsTest extends PHPUnit_Framework_TestCase
 	testFstatVFS ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_open($state, $this->testuri, 'r');
 
 		$vfs = smbclient_fstatvfs($state, $file);
