@@ -6,8 +6,8 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 	testGetxattrFileSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$attr = smbclient_getxattr($state, 'smb://localhost/testshare/testdir/testfile.txt', 'system.*');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt', 'system.*');
 		$this->assertTrue(is_string($attr));
 	}
 
@@ -15,8 +15,8 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 	testGetxattrDirSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$attr = smbclient_getxattr($state, 'smb://localhost/testshare/testdir', 'system.*');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir', 'system.*');
 		$this->assertTrue(is_string($attr));
 	}
 
@@ -24,8 +24,8 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 	testGetxattrShareSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$attr = smbclient_getxattr($state, 'smb://localhost/testshare', 'system.*');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE, 'system.*');
 		$this->assertTrue(is_string($attr));
 	}
 
@@ -36,8 +36,8 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 	testGetxattrServer ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$attr = smbclient_getxattr($state, 'smb://localhost', 'system.*');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST, 'system.*');
 		$this->assertFalse($attr);
 	}
 
@@ -48,8 +48,8 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 	testGetxattrFileNotFound ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$attr = smbclient_getxattr($state, 'smb://localhost/testshare/testdir/does-not-exist', 'system.dos_attr.mode');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/does-not-exist', 'system.dos_attr.mode');
 		$this->assertFalse($attr);
 		$this->assertEquals(smbclient_state_errno($state), 2);	// ENOENT
 	}

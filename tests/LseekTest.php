@@ -3,16 +3,16 @@
 class LseekTest extends PHPUnit_Framework_TestCase
 {
 	// The URI of the test file seen through Samba:
-	private $testuri = 'smb://localhost/testshare/lseektest.txt';
+	private $testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/lseektest.txt';
 
 	// The "real" file on the filesystem:
-	private $realfile = '/home/testuser/testshare/lseektest.txt';
+	private $realfile = SMB_LOCAL.'/lseektest.txt';
 
 	public function
 	testLseekSet ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_creat($state, $this->testuri);
 		$ret = smbclient_write($state, $file, 'abcdefgh');
 		$this->assertTrue(is_integer($ret));
@@ -29,7 +29,7 @@ class LseekTest extends PHPUnit_Framework_TestCase
 	testLseekSetPastEnd ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_creat($state, $this->testuri);
 
 		$ret = smbclient_lseek($state, $file, 3, SEEK_SET);
@@ -44,7 +44,7 @@ class LseekTest extends PHPUnit_Framework_TestCase
 	testLseekCurPositive ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_creat($state, $this->testuri);
 		smbclient_write($state, $file, 'abcdefgh');
 

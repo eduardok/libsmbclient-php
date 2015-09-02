@@ -6,8 +6,8 @@ class ClosedirTest extends PHPUnit_Framework_TestCase
 	testClosedirSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		$this->assertTrue(smbclient_closedir($state, $dir));
 	}
 
@@ -18,7 +18,7 @@ class ClosedirTest extends PHPUnit_Framework_TestCase
 	testClosedirEmpty ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$this->assertFalse(smbclient_closedir($state));
 	}
 
@@ -29,7 +29,7 @@ class ClosedirTest extends PHPUnit_Framework_TestCase
 	testClosedirNull ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$this->assertTrue(smbclient_closedir($state, null));
 	}
 
@@ -40,8 +40,8 @@ class ClosedirTest extends PHPUnit_Framework_TestCase
 	testClosedirDouble ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		$this->assertTrue(smbclient_closedir($state, $dir));
 		$this->assertFalse(smbclient_closedir($state, $dir));
 	}
