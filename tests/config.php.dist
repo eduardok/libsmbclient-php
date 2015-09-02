@@ -1,0 +1,7 @@
+<?php
+define('SMB_HOST',  'localhost');
+define('SMB_USER',  'testuser');
+define('SMB_PASS',  'password');
+define('SMB_HASH',  '8846F7EAEE8FB117AD06BDD830B7586C');
+define('SMB_SHARE', 'testshare');
+define('SMB_LOCAL', '/home/testuser/testshare');

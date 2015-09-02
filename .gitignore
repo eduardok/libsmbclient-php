@@ -1,1 +1,2 @@
 tests/phpunit.xml
+tests/config.php
