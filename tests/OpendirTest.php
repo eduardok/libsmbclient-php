@@ -6,8 +6,8 @@ class OpendirTest extends PHPUnit_Framework_TestCase
 	testOpendirSuccess ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare/testdir');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir');
 		$this->assertTrue(is_resource($dir));
 	}
 
@@ -17,7 +17,7 @@ class OpendirTest extends PHPUnit_Framework_TestCase
 	public function
 	testOpendirInvalidState ()
 	{
-		$dir = smbclient_opendir(null, 'smb://localhost/testshare/testdir');
+		$dir = smbclient_opendir(null, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir');
 		$this->assertFalse($dir);
 	}
 
@@ -28,8 +28,8 @@ class OpendirTest extends PHPUnit_Framework_TestCase
 	testOpendirNotFound ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare/does-not-exist');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/does-not-exist');
 		$this->assertFalse($dir);
 		$errno = smbclient_state_errno($state);
 		$this->assertEquals(2, $errno); // ENOENT
@@ -42,8 +42,8 @@ class OpendirTest extends PHPUnit_Framework_TestCase
 	testOpendirPermissionDenied ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare/noaccess');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/noaccess');
 		$this->assertFalse($dir);
 		$errno = smbclient_state_errno($state);
 		$this->assertEquals(13, $errno); // EACCES
@@ -56,8 +56,8 @@ class OpendirTest extends PHPUnit_Framework_TestCase
 	testOpendirNotDir ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare/testfile.txt');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testfile.txt');
 		$this->assertFalse($dir);
 		$errno = smbclient_state_errno($state);
 		$this->assertEquals(20, $errno); // ENOTDIR
