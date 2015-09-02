@@ -1,5 +1,7 @@
 <?php
 
+require_once dirname(__FILE__) . '/config.php.dist';
+
 class StateFreeTest extends PHPUnit_Framework_TestCase
 {
 	public function

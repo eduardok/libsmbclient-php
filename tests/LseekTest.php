@@ -1,5 +1,7 @@
 <?php
 
+require_once dirname(__FILE__) . '/config.php.dist';
+
 class LseekTest extends PHPUnit_Framework_TestCase
 {
 	// The URI of the test file seen through Samba:
