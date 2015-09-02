@@ -34,5 +34,4 @@ script:
   - make
   - sudo make install
   - echo 'extension="libsmbclient.so"' | sudo tee -a /etc/php5/cli/php.ini
-  - cp tests/phpunit.xml.dist tests/phpunit.xml
-  - /usr/bin/php phpunit.phar -c tests/phpunit.xml
+  - /usr/bin/php phpunit.phar --verbose

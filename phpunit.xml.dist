@@ -1,0 +1,5 @@
+<phpunit bootstrap="tests/config.php.dist" colors="true">
+  <testsuite name="libsmbclient-php">
+    <directory suffix=".php">tests</directory>
+  </testsuite>
+</phpunit>
