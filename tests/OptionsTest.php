@@ -34,7 +34,7 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 	testOptionSetGetCaseSensitive ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$this->assertTrue(smbclient_option_set($state, SMBCLIENT_OPT_CASE_SENSITIVE, true));
 		$this->assertTrue(smbclient_option_get($state, SMBCLIENT_OPT_CASE_SENSITIVE));
 
@@ -47,9 +47,9 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 	testOptionSetGetUser ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$this->assertTrue(smbclient_option_set($state, SMBCLIENT_OPT_USER, 'testuser'));
-		$this->assertEquals('testuser', smbclient_option_get($state, SMBCLIENT_OPT_USER));
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$this->assertTrue(smbclient_option_set($state, SMBCLIENT_OPT_USER, SMB_USER));
+		$this->assertEquals(SMB_USER, smbclient_option_get($state, SMBCLIENT_OPT_USER));
 		smbclient_state_free($state);
 	}
 
@@ -57,10 +57,10 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 	testOptionSetGetUserWithOpen ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
-		$this->assertTrue(smbclient_option_set($state, SMBCLIENT_OPT_USER, 'testuser'));
-		$this->assertEquals('testuser', smbclient_option_get($state, SMBCLIENT_OPT_USER));
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		$this->assertTrue(smbclient_option_set($state, SMBCLIENT_OPT_USER, SMB_USER));
+		$this->assertEquals(SMB_USER, smbclient_option_get($state, SMBCLIENT_OPT_USER));
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		while (($out = smbclient_readdir($state, $dir)) !== false);
 		smbclient_closedir($state, $dir);
 		smbclient_state_free($state);
@@ -70,14 +70,14 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 	testOptionUrlencodeReaddir ()
 	{
 		$state = smbclient_state_new();
-		smbclient_state_init($state, null, 'testuser', 'password');
+		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 
 		// Create a file via the regular filesystem:
-		touch('/home/testuser/testshare/readdir%option.txt');
+		touch(SMB_LOCAL.'/readdir%option.txt');
 
 		// Technically options can only be set between new and init...
 		smbclient_option_set($state, SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES, false);
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		$found = false;
 		while (($out = smbclient_readdir($state, $dir)) !== false) {
 			if ($out['name'] === 'readdir%option.txt') {
@@ -89,7 +89,7 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 		$this->assertTrue($found);
 
 		smbclient_option_set($state, SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES, true);
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		$found = false;
 		while (($out = smbclient_readdir($state, $dir)) !== false) {
 			if ($out['name'] === 'readdir%25option.txt') {
@@ -101,7 +101,7 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 		smbclient_state_free($state);
 		$this->assertTrue($found);
 
-		unlink('/home/testuser/testshare/readdir%option.txt');
+		unlink(SMB_LOCAL.'/readdir%option.txt');
 	}
 
 	public function
@@ -116,9 +116,9 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 		smbclient_option_set($state, SMBCLIENT_OPT_USE_NT_HASH, true);
 
 		// NTLM hash of 'password' generated at http://www.tobtu.com/lmntlm.php
-		smbclient_state_init($state, null, 'testuser', '8846F7EAEE8FB117AD06BDD830B7586C');
+		smbclient_state_init($state, null, SMB_USER, SMB_HASH);
 
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		while (($out = smbclient_readdir($state, $dir)) !== false);
 		$this->assertTrue(is_resource($dir));
 		smbclient_closedir($state, $dir);

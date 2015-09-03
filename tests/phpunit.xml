@@ -1,5 +1,0 @@
-<phpunit colors="true">
-  <testsuite name="libsmbclient-php">
-    <directory suffix=".php">./</directory>
-  </testsuite>
-</phpunit>
