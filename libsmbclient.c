@@ -488,6 +488,9 @@ PHP_FUNCTION(smbclient_state_new)
 	SMBCCTX *ctx;
 	php_libsmbclient_state *state;
 
+	if (zend_parse_parameters_none() == FAILURE) {
+		RETURN_FALSE;
+	}
 	if ((ctx = smbc_new_context()) == NULL) {
 		switch (errno) {
 			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
@@ -554,11 +557,17 @@ ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
 
 PHP_FUNCTION(smbclient_version)
 {
+	if (zend_parse_parameters_none() == FAILURE) {
+		RETURN_FALSE;
+	}
 	RETURN_STRING(LIBSMBCLIENT_VERSION, 1);
 }
 
 PHP_FUNCTION(smbclient_library_version)
 {
+	if (zend_parse_parameters_none() == FAILURE) {
+		RETURN_FALSE;
+	}
 	RETURN_STRING(smbc_version(), 1);
 }
 
