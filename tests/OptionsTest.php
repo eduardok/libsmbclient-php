@@ -60,7 +60,7 @@ class OptionsTest extends PHPUnit_Framework_TestCase
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$this->assertTrue(smbclient_option_set($state, SMBCLIENT_OPT_USER, SMB_USER));
 		$this->assertEquals(SMB_USER, smbclient_option_get($state, SMBCLIENT_OPT_USER));
-		$dir = smbclient_opendir($state, 'smb://localhost/testshare');
+		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		while (($out = smbclient_readdir($state, $dir)) !== false);
 		smbclient_closedir($state, $dir);
 		smbclient_state_free($state);
