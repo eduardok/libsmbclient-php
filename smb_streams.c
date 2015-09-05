@@ -177,66 +177,23 @@ php_stream *php_stream_smb_opener(php_stream_wrapper *wrapper,
 											char **opened_path,
 											php_stream_context *context STREAMS_DC TSRMLS_DC)
 {
-	php_url                *resource;
 	php_libsmbclient_state *state;
 	int                     smbflags;
 	long                    smbmode = 0666;
 	smbc_open_fn            smbc_open;
 	SMBCFILE               *handle;
 	php_smb_stream_data    *self;
-	char                   *file;
 
-	/* URI schema is smb://[[wrkg:]user[:pass]@]host/share/file (single colon used as user:pass)*/
-	resource = php_url_parse(path);
-	if (resource == NULL) {
-		return NULL;
-	}
-	if ((resource->scheme && strcmp(resource->scheme, "smb"))
-	    || !resource->path
-	    || resource->port
-	    || resource->query
-	    || resource->fragment) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid SMB uri");
-		php_url_free(resource);
-		return NULL;
-	}
 	/* Context */
 	state = php_libsmbclient_state_new(TSRMLS_C);
 	if (!state) {
-		php_url_free(resource);
 		return NULL;
 	}
-	/* Credentials */
-	if (resource->user) {
-		state->userlen = strlen(resource->user);
-		state->user    = estrndup(resource->user, state->userlen);
-	}
-	if (resource->pass) {
-		char *p;
-		p = strchr(resource->pass, ':');
-		if (p) {
-			/* URI contains wrkg:user:pass, so wrkg already copied in user*/
-			state->wrkglen = state->userlen;
-			state->wrkg    = state->user;
-			state->userlen = (p - resource->pass);
-			state->user    = estrndup(resource->pass, state->userlen);
-			state->passlen = strlen(p+1);
-			state->pass    = estrndup(p+1, state->passlen);
-		} else {
-			/* URI contains user:pass */
-			state->passlen = strlen(resource->pass);
-			state->pass    = estrndup(resource->pass, state->passlen);
-		}
-	}
 	if (php_libsmbclient_state_init(state TSRMLS_CC)) {
-		php_url_free(resource);
 		php_libsmbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	/* File */
-	spprintf(&file, 0, "smb://%s/%s", resource->host, resource->path);
-	php_url_free(resource);
-
 	if (!strcmp(mode, "wb")) {
 		mode = "w";
 	} else if (!strcmp(mode, "rb")) {
@@ -244,20 +201,16 @@ php_stream *php_stream_smb_opener(php_stream_wrapper *wrapper,
 	}
 	if (flagstring_to_smbflags(mode, strlen(mode), &smbflags TSRMLS_CC) == 0) {
 		php_libsmbclient_state_free(state TSRMLS_CC);
-		efree(file);
 		return NULL;
 	}
 	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
 		php_libsmbclient_state_free(state TSRMLS_CC);
-		efree(file);
 		return NULL;
 	}
-	if ((handle = smbc_open(state->ctx, file, smbflags, smbmode)) == NULL) {
+	if ((handle = smbc_open(state->ctx, path, smbflags, smbmode)) == NULL) {
 		php_libsmbclient_state_free(state TSRMLS_CC);
-		efree(file);
 		return NULL;
 	}
-	efree(file);
 	self = ecalloc(sizeof(*self), 1);
 	self->state  = state;
 	self->handle = handle;
