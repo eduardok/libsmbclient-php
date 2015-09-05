@@ -56,6 +56,9 @@
 typedef struct _php_smb_stream_data {
 	php_libsmbclient_state *state;
 	SMBCFILE               *handle;
+	smbc_read_fn            smbc_read;
+	smbc_write_fn           smbc_write;
+	smbc_lseek_fn           smbc_lseek;
 } php_smb_stream_data;
 
 static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
@@ -87,15 +90,16 @@ static int php_smb_ops_flush(php_stream *stream TSRMLS_DC)
 static size_t php_smb_ops_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
 {
 	ssize_t n = 0;
-	smbc_read_fn smbc_read;
 	STREAM_DATA_FROM_STREAM();
 
 	if (!self || !self->handle) {
 		return 0;
 	}
-	smbc_read = smbc_getFunctionRead(self->state->ctx);
-	if (smbc_read) {
-		n = smbc_read(self->state->ctx, self->handle, buf, count);
+	if (!self->smbc_read) {
+		self->smbc_read = smbc_getFunctionRead(self->state->ctx);
+	}
+	if (self->smbc_read) {
+		n = self->smbc_read(self->state->ctx, self->handle, buf, count);
 	}
 	/* cast count to signed value to avoid possibly negative n being cast to unsigned value */
 	if (n == 0 || n < (ssize_t)count) {
@@ -106,18 +110,47 @@ static size_t php_smb_ops_read(php_stream *stream, char *buf, size_t count TSRML
 
 static size_t php_smb_ops_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
 {
-	smbc_write_fn smbc_write;
+	size_t len = 0;
 	STREAM_DATA_FROM_STREAM();
 
 	if (!self || !self->handle) {
 		return 0;
 	}
-	smbc_write = smbc_getFunctionWrite(self->state->ctx);
-	if (smbc_write) {
-		return smbc_write(self->state->ctx, self->handle, buf, count);
+	if (!self->smbc_write) {
+		self->smbc_write = smbc_getFunctionWrite(self->state->ctx);
 	}
+	if (self->smbc_write) {
+		len = self->smbc_write(self->state->ctx, self->handle, buf, count);
+	}
+	return len;
+}
 
+static int php_smb_ops_stat(php_stream *stream, php_stream_statbuf *ssb TSRMLS_DC) /* {{{ */
+{
+	smbc_fstat_fn smbc_fstat;
+	STREAM_DATA_FROM_STREAM();
+
+	if ((smbc_fstat = smbc_getFunctionFstat(self->state->ctx)) == NULL) {
+		return -1;
+	}
+	if (smbc_fstat(self->state->ctx, self->handle, &ssb->sb) < 0) {
+		return -1;
+	}
 	return 0;
+}
+
+static int php_smb_ops_seek(php_stream *stream, off_t offset, int whence, off_t *newoffset TSRMLS_DC)
+{
+	STREAM_DATA_FROM_STREAM();
+
+	if (!self->smbc_lseek) {
+		self->smbc_lseek = smbc_getFunctionLseek(self->state->ctx);
+	}
+	if (self->smbc_lseek) {
+		*newoffset = self->smbc_lseek(self->state->ctx, self->handle, offset, whence);
+		return 0;
+	}
+	return -1;
 }
 
 static php_stream_ops php_stream_smbio_ops = {
@@ -126,9 +159,9 @@ static php_stream_ops php_stream_smbio_ops = {
 	php_smb_ops_close,
 	php_smb_ops_flush,
 	"smb",
-	NULL, // php_smb_ops_seek,
+	php_smb_ops_seek,
 	NULL, /* cast */
-	NULL, // php_smb_ops_stat,
+	php_smb_ops_stat,
 	NULL  /* set_option */
 };
 
@@ -211,17 +244,21 @@ php_stream *php_stream_smb_opener(php_stream_wrapper *wrapper,
 	}
 	if (flagstring_to_smbflags(mode, strlen(mode), &smbflags TSRMLS_CC) == 0) {
 		php_libsmbclient_state_free(state TSRMLS_CC);
+		efree(file);
 		return NULL;
 	}
 	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
 		php_libsmbclient_state_free(state TSRMLS_CC);
+		efree(file);
 		return NULL;
 	}
 	if ((handle = smbc_open(state->ctx, file, smbflags, smbmode)) == NULL) {
 		php_libsmbclient_state_free(state TSRMLS_CC);
+		efree(file);
 		return NULL;
 	}
-	self = emalloc(sizeof(*self));
+	efree(file);
+	self = ecalloc(sizeof(*self), 1);
 	self->state  = state;
 	self->handle = handle;
 
