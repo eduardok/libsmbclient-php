@@ -47,10 +47,6 @@
 #include "ext/standard/info.h"
 #include "php_libsmbclient.h"
 
-#include <libsmbclient.h>
-
-#define LIBSMBCLIENT_VERSION	"0.7.0"
-
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own copy of
  * the php_libsmbclient_globals structure. Else we use a single global copy: */
 #ifdef ZTS
@@ -64,19 +60,6 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 	/* This function initializes the thread-local storage.
 	 * We currently don't use this. */
 }
-
-typedef struct _php_libsmbclient_state
-{
-	SMBCCTX *ctx;
-	char *wrkg;
-	char *user;
-	char *pass;
-	int wrkglen;
-	int userlen;
-	int passlen;
-	int err;
-}
-php_libsmbclient_state;
 
 #define PHP_LIBSMBCLIENT_STATE_NAME "smbclient state"
 #define PHP_LIBSMBCLIENT_FILE_NAME "smbclient file"
@@ -365,11 +348,9 @@ smbclient_auth_func (SMBCCTX *ctx, const char *server, const char *share, char *
 	auth_copy(pass, state->pass, (size_t)state->passlen, (size_t)passlen);
 }
 
-static void
-smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+void
+php_libsmbclient_state_free (php_libsmbclient_state *state TSRMLS_DC)
 {
-	php_libsmbclient_state *state = (php_libsmbclient_state *)rsrc->ptr;
-
 	/* TODO: if smbc_free_context() returns 0, PHP will leak the handle: */
 	if (state->ctx != NULL && smbc_free_context(state->ctx, 1) != 0) {
 		switch (errno) {
@@ -391,6 +372,12 @@ smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		efree(state->pass);
 	}
 	efree(state);
+}
+
+static inline void
+smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	php_libsmbclient_state_free((php_libsmbclient_state *)rsrc->ptr);
 }
 
 static void
@@ -461,6 +448,8 @@ PHP_MINIT_FUNCTION(smbclient)
 	le_libsmbclient_state = zend_register_list_destructors_ex(smbclient_state_dtor, NULL, PHP_LIBSMBCLIENT_STATE_NAME, module_number);
 	le_libsmbclient_file = zend_register_list_destructors_ex(smbclient_file_dtor, NULL, PHP_LIBSMBCLIENT_FILE_NAME, module_number);
 
+	php_register_url_stream_wrapper("smb", &php_stream_smb_wrapper TSRMLS_CC);
+
 	return SUCCESS;
 }
 
@@ -483,20 +472,18 @@ PHP_MINFO_FUNCTION(smbclient)
 	php_info_print_table_end();
 }
 
-PHP_FUNCTION(smbclient_state_new)
+php_libsmbclient_state *
+php_libsmbclient_state_new (TSRMLS_D)
 {
-	SMBCCTX *ctx;
 	php_libsmbclient_state *state;
+	SMBCCTX *ctx;
 
-	if (zend_parse_parameters_none() == FAILURE) {
-		RETURN_FALSE;
-	}
 	if ((ctx = smbc_new_context()) == NULL) {
 		switch (errno) {
 			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
 			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error (%d)", errno); break;
 		};
-		RETURN_FALSE;
+		return NULL;
 	}
 	state = emalloc(sizeof(php_libsmbclient_state));
 	state->ctx = ctx;
@@ -517,6 +504,19 @@ PHP_FUNCTION(smbclient_state_new)
 	/* Force full, modern timenames when getting xattrs: */
 	smbc_setOptionFullTimeNames(state->ctx, 1);
 
+	return state;
+}
+
+PHP_FUNCTION(smbclient_state_new)
+{
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters_none() == FAILURE) {
+		RETURN_FALSE;
+	}
+	if ((state = php_libsmbclient_state_new(TSRMLS_C)) == NULL) {
+		RETURN_FALSE;
+	}
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
 }
 
@@ -571,9 +571,26 @@ PHP_FUNCTION(smbclient_library_version)
 	RETURN_STRING(smbc_version(), 1);
 }
 
-PHP_FUNCTION(smbclient_state_init)
+int
+php_libsmbclient_state_init (php_libsmbclient_state *state TSRMLS_DC)
 {
 	SMBCCTX *ctx;
+
+	if ((ctx = smbc_init_context(state->ctx)) != NULL) {
+		state->ctx = ctx;
+		return 0;
+	}
+	switch (state->err = errno) {
+		case EBADF: php_error(E_WARNING, "Couldn't init SMB context: null context given"); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't init SMB context: insufficient memory"); break;
+		case ENOENT: php_error(E_WARNING, "Couldn't init SMB context: cannot load smb.conf"); break;
+		default: php_error(E_WARNING, "Couldn't init SMB context: unknown error (%d)", errno); break;
+	}
+	return 1;
+}
+
+PHP_FUNCTION(smbclient_state_init)
+{
 	zval *zstate;
 	zval *zwrkg = NULL;
 	zval *zuser = NULL;
@@ -598,17 +615,10 @@ PHP_FUNCTION(smbclient_state_init)
 	if (ctx_init_getauth(zpass, &state->pass, &state->passlen, "password") == 0) {
 		RETURN_FALSE;
 	}
-	if ((ctx = smbc_init_context(state->ctx)) != NULL) {
-		state->ctx = ctx;
-		RETURN_TRUE;
+	if (php_libsmbclient_state_init(state TSRMLS_CC)) {
+		RETURN_FALSE;
 	}
-	switch (state->err = errno) {
-		case EBADF: php_error(E_WARNING, "Couldn't init SMB context: null context given"); break;
-		case ENOMEM: php_error(E_WARNING, "Couldn't init SMB context: insufficient memory"); break;
-		case ENOENT: php_error(E_WARNING, "Couldn't init SMB context: cannot load smb.conf"); break;
-		default: php_error(E_WARNING, "Couldn't init SMB context: unknown error (%d)", errno); break;
-	}
-	RETURN_FALSE;
+	RETURN_TRUE;
 }
 
 PHP_FUNCTION(smbclient_state_errno)
@@ -1048,8 +1058,8 @@ PHP_FUNCTION(smbclient_fstat)
 	add_assoc_long(return_value, "blocks", statbuf.st_blocks);
 }
 
-static int
-flagstring_to_smbflags (char *flags, int flags_len, int *retval)
+int
+flagstring_to_smbflags (const char *flags, int flags_len, int *retval TSRMLS_DC)
 {
 	/* Returns 0 on failure, or 1 on success with *retval filled. */
 	if (flags_len != 1 && flags_len != 2) {
@@ -1078,7 +1088,8 @@ flagstring_to_smbflags (char *flags, int flags_len, int *retval)
 	*retval |= O_RDWR;
 	return 1;
 
-err:	php_error(E_WARNING, "Invalid flag string");
+err:
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid flag string '%s'", flags);
 	return 0;
 }
 
@@ -1101,7 +1112,7 @@ PHP_FUNCTION(smbclient_open)
 	/* The flagstring is in the same format as the native fopen() uses, so
 	 * one of the characters r, w, a, x, c, optionally followed by a plus.
 	 * Need to translate this to an integer value for smbc_open: */
-	if (flagstring_to_smbflags(flags, flags_len, &smbflags) == 0) {
+	if (flagstring_to_smbflags(flags, flags_len, &smbflags TSRMLS_CC) == 0) {
 		RETURN_FALSE;
 	}
 	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
