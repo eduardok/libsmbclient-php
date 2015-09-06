@@ -13,10 +13,13 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 	setup()
 	{
 		$this->readuri  = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
+		$this->realread = SMB_LOCAL . '/testdir/testfile.txt';
+
 		$this->writeuri = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamfile.txt';
 		$this->writealt = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/streamfile.txt';
-		$this->diruri   = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamdir';
 		$this->realfile = SMB_LOCAL . '/streamfile.txt';
+
+		$this->diruri   = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamdir';
 		$this->realdir  = SMB_LOCAL . '/streamdir';
 	}
 
@@ -130,9 +133,24 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 	public function
 	testReaddir ()
 	{
-		$local = scandir($n = dirname($this->realdir));
+		$local = scandir(dirname($this->realdir));
 		$smb   = scandir(dirname($this->diruri));
 
 		$this->assertEquals($local, $smb);
+	}
+
+	public function
+	testStat ()
+	{
+		$stat = stat($this->readuri);
+		$this->assertCount(26, $stat);
+		$this->assertArrayHasKey('atime', $stat);
+		$this->assertArrayHasKey('mtime', $stat);
+		$this->assertArrayHasKey('ctime', $stat);
+		$this->assertArrayHasKey('size',  $stat);
+
+		$local = stat($this->realread);
+		$this->assertEquals($local['size'], $stat['size']);
+		/* can't compare other values as local/remote are different */
 	}
 }

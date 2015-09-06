@@ -468,11 +468,47 @@ php_stream_smbdir_opener(
 	return php_stream_alloc(&php_stream_smbdir_ops, self, NULL, mode);
 }
 
+static int
+php_stream_smb_stat(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *url,
+#else
+	const char *url,
+#endif
+	int flags,
+	php_stream_statbuf *ssb,
+	php_stream_context *context
+	TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_stat_fn smbc_stat;
+
+	/* Context */
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	if (!state) {
+		return 0;
+	}
+	/* Stat */
+	if ((smbc_stat = smbc_getFunctionStat(state->ctx)) == NULL) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Stat not supported");
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return -1;
+	}
+	if (smbc_stat(state->ctx, url, &ssb->sb) >= 0) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return 0;
+	}
+	/* dont display error as PHP use this method internally to check if file exists */
+	php_libsmbclient_state_free(state TSRMLS_CC);
+	return -1;
+}
+
 static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_opener,
 	NULL,	/* close */
 	NULL,	/* fstat */
-	NULL,	/* stat */
+	php_stream_smb_stat,
 	php_stream_smbdir_opener,
 	"smb wrapper",
 	php_stream_smb_unlink,
