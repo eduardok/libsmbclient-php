@@ -165,17 +165,19 @@ static php_stream_ops php_stream_smbio_ops = {
 	NULL  /* set_option */
 };
 
-php_stream *php_stream_smb_opener(php_stream_wrapper *wrapper,
+php_stream *php_stream_smb_opener(
+	php_stream_wrapper *wrapper,
 #if PHP_VERSION_ID < 50600
-											char *path,
-											char *mode,
+	char *path,
+	char *mode,
 #else
-											const char *path,
-											const char *mode,
+	const char *path,
+	const char *mode,
 #endif
-											int options,
-											char **opened_path,
-											php_stream_context *context STREAMS_DC TSRMLS_DC)
+	int options,
+	char **opened_path,
+	php_stream_context *context
+	STREAMS_DC TSRMLS_DC)
 {
 	php_libsmbclient_state *state;
 	int                     smbflags;
@@ -218,6 +220,45 @@ php_stream *php_stream_smb_opener(php_stream_wrapper *wrapper,
 	return php_stream_alloc(&php_stream_smbio_ops, self, NULL, mode);
 }
 
+static int php_stream_smb_unlink(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *url,
+#else
+	const char *url,
+#endif
+	int options,
+	php_stream_context *context
+	TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_unlink_fn smbc_unlink;
+
+	/* Context */
+	state = php_libsmbclient_state_new(TSRMLS_C);
+	if (!state) {
+		return NULL;
+	}
+	if (php_libsmbclient_state_init(state TSRMLS_CC)) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return NULL;
+	}
+	/* Unlink */
+	if ((smbc_unlink = smbc_getFunctionUnlink(state->ctx)) == NULL) {
+		if (options & REPORT_ERRORS) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink not supported");
+		}
+		return 0;
+	}
+	if (smbc_unlink(state->ctx, url) == 0) {
+		return 1;
+	}
+	if (options & REPORT_ERRORS) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink fails: ", strerror(errno));
+	}
+	return 0;
+}
+
 static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_opener,
 	NULL,	/* close */
@@ -225,7 +266,7 @@ static php_stream_wrapper_ops smb_stream_wops = {
 	NULL,	/* stat */
 	NULL,	/* opendir */
 	"smb wrapper",
-	NULL,	/* unlink */
+	php_stream_smb_unlink,
 	NULL,	/* rename */
 	NULL,	/* mkdir */
 	NULL	/* rmdir */

@@ -9,10 +9,18 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		"Lorem ipsum dolor sit amet, consectetur adipisicing elit,
 		sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n";
 
-	public function setup() {
+	public function
+	setup()
+	{
 		$this->readuri  = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
 		$this->writeuri = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamfile.txt';
 		$this->realfile = SMB_LOCAL . '/streamfile.txt';
+	}
+
+	public function
+	tearDown()
+	{
+		@unlink($this->realfile);
 	}
 
 	public function
@@ -48,7 +56,6 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals(2*$len+3, $stat['size']);
 
 		$this->assertTrue(fclose($fic));
-		unlink($this->realfile);
 	}
 
 	public function
@@ -57,7 +64,6 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$len = file_put_contents($this->writeuri, $this->testdata);
 		$this->assertEquals(strlen($this->testdata), $len);
 		$this->assertFileExists($this->realfile);
-		unlink($this->realfile);
 	}
 
 	public function
@@ -65,5 +71,14 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 	{
 		$data = file_get_contents($this->readuri);
 		$this->assertTrue(strlen($data) > 0);
+	}
+
+	public function
+	testUnlink ()
+	{
+		$this->assertTrue(copy($this->readuri, $this->writeuri));
+		$this->assertFileExists($this->realfile);
+		$this->assertTrue(unlink($this->writeuri));
+		$this->assertFileNotExists($this->realfile);
 	}
 }
