@@ -377,7 +377,7 @@ php_libsmbclient_state_free (php_libsmbclient_state *state TSRMLS_DC)
 static inline void
 smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-	php_libsmbclient_state_free((php_libsmbclient_state *)rsrc->ptr);
+	php_libsmbclient_state_free((php_libsmbclient_state *)rsrc->ptr TSRMLS_CC);
 }
 
 static void
@@ -473,7 +473,7 @@ PHP_MINFO_FUNCTION(smbclient)
 }
 
 php_libsmbclient_state *
-php_libsmbclient_state_new (TSRMLS_D)
+php_libsmbclient_state_new (int init TSRMLS_DC)
 {
 	php_libsmbclient_state *state;
 	SMBCCTX *ctx;
@@ -504,6 +504,12 @@ php_libsmbclient_state_new (TSRMLS_D)
 	/* Force full, modern timenames when getting xattrs: */
 	smbc_setOptionFullTimeNames(state->ctx, 1);
 
+	if (init) {
+		if (php_libsmbclient_state_init(state TSRMLS_CC)) {
+			php_libsmbclient_state_free(state TSRMLS_CC);
+			return NULL;
+		}
+	}
 	return state;
 }
 
@@ -514,7 +520,7 @@ PHP_FUNCTION(smbclient_state_new)
 	if (zend_parse_parameters_none() == FAILURE) {
 		RETURN_FALSE;
 	}
-	if ((state = php_libsmbclient_state_new(TSRMLS_C)) == NULL) {
+	if ((state = php_libsmbclient_state_new(0 TSRMLS_CC)) == NULL) {
 		RETURN_FALSE;
 	}
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);

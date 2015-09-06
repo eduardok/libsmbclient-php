@@ -165,7 +165,8 @@ static php_stream_ops php_stream_smbio_ops = {
 	NULL  /* set_option */
 };
 
-php_stream *php_stream_smb_opener(
+static php_stream *
+php_stream_smb_opener(
 	php_stream_wrapper *wrapper,
 #if PHP_VERSION_ID < 50600
 	char *path,
@@ -187,12 +188,8 @@ php_stream *php_stream_smb_opener(
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_libsmbclient_state_new(TSRMLS_C);
+	state = php_libsmbclient_state_new(1 TSRMLS_CC);
 	if (!state) {
-		return NULL;
-	}
-	if (php_libsmbclient_state_init(state TSRMLS_CC)) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	/* File */
@@ -220,7 +217,8 @@ php_stream *php_stream_smb_opener(
 	return php_stream_alloc(&php_stream_smbio_ops, self, NULL, mode);
 }
 
-static int php_stream_smb_unlink(
+static int
+php_stream_smb_unlink(
 	php_stream_wrapper *wrapper,
 #if PHP_VERSION_ID < 50600
 	char *url,
@@ -235,13 +233,9 @@ static int php_stream_smb_unlink(
 	smbc_unlink_fn smbc_unlink;
 
 	/* Context */
-	state = php_libsmbclient_state_new(TSRMLS_C);
+	state = php_libsmbclient_state_new(1 TSRMLS_CC);
 	if (!state) {
-		return NULL;
-	}
-	if (php_libsmbclient_state_init(state TSRMLS_CC)) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
-		return NULL;
+		return 0;
 	}
 	/* Unlink */
 	if ((smbc_unlink = smbc_getFunctionUnlink(state->ctx)) == NULL) {
@@ -254,8 +248,77 @@ static int php_stream_smb_unlink(
 		return 1;
 	}
 	if (options & REPORT_ERRORS) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink fails: ", strerror(errno));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink fails: %s", strerror(errno));
 	}
+	return 0;
+}
+
+static int
+php_stream_smb_mkdir(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *url,
+#else
+	const char *url,
+#endif
+	int mode,
+	int options,
+	php_stream_context *context
+	TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_mkdir_fn smbc_mkdir;
+
+	if (options & PHP_STREAM_MKDIR_RECURSIVE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Recursive mkdir not supported");
+		return 0;
+	}
+	/* Context */
+	state = php_libsmbclient_state_new(1 TSRMLS_CC);
+	if (!state) {
+		return 0;
+	}
+	/* Mkdir */
+	if ((smbc_mkdir = smbc_getFunctionMkdir(state->ctx)) == NULL) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir not supported");
+		return 0;
+	}
+	if (smbc_mkdir(state->ctx, url, (mode_t)mode) == 0) {
+		return 1;
+	}
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir fails: %s", strerror(errno));
+	return 0;
+}
+
+static int
+php_stream_smb_rmdir(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *url,
+#else
+	const char *url,
+#endif
+	int options,
+	php_stream_context *context
+	TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_rmdir_fn smbc_rmdir;
+
+	/* Context */
+	state = php_libsmbclient_state_new(1 TSRMLS_CC);
+	if (!state) {
+		return 0;
+	}
+	/* Rmdir */
+	if ((smbc_rmdir = smbc_getFunctionRmdir(state->ctx)) == NULL) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir not supported");
+		return 0;
+	}
+	if (smbc_rmdir(state->ctx, url) == 0) {
+		return 1;
+	}
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir fails: %s", strerror(errno));
 	return 0;
 }
 
@@ -268,8 +331,9 @@ static php_stream_wrapper_ops smb_stream_wops = {
 	"smb wrapper",
 	php_stream_smb_unlink,
 	NULL,	/* rename */
-	NULL,	/* mkdir */
-	NULL	/* rmdir */
+	php_stream_smb_mkdir,
+	php_stream_smb_rmdir,
+	NULL     /* metadata */
 };
 
 php_stream_wrapper php_stream_smb_wrapper = {

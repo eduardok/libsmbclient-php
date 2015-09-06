@@ -14,13 +14,16 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 	{
 		$this->readuri  = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
 		$this->writeuri = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamfile.txt';
+		$this->diruri   = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamdir';
 		$this->realfile = SMB_LOCAL . '/streamfile.txt';
+		$this->realdir  = SMB_LOCAL . '/streamdir';
 	}
 
 	public function
 	tearDown()
 	{
 		@unlink($this->realfile);
+		@rmdir($this->realdir);
 	}
 
 	public function
@@ -80,5 +83,16 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertFileExists($this->realfile);
 		$this->assertTrue(unlink($this->writeuri));
 		$this->assertFileNotExists($this->realfile);
+	}
+
+
+	public function
+	testMkdirRmdir ()
+	{
+		$this->assertTrue(mkdir($this->diruri));
+		$this->assertTrue(is_dir($this->realdir), "Directory exists");
+		$this->assertTrue(rmdir($this->diruri));
+		clearstatcache();
+		$this->assertFalse(is_dir($this->realdir), "Directory not exists");
 	}
 }
