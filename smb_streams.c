@@ -56,7 +56,9 @@
 typedef struct _php_smb_stream_data {
 	php_libsmbclient_state *state;
 	SMBCFILE               *handle;
+	/* pointers cache for multiple call */
 	smbc_read_fn            smbc_read;
+	smbc_readdir_fn         smbc_readdir;
 	smbc_write_fn           smbc_write;
 	smbc_lseek_fn           smbc_lseek;
 } php_smb_stream_data;
@@ -188,7 +190,7 @@ php_stream_smb_opener(
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context TSRMLS_CC);
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return NULL;
 	}
@@ -233,7 +235,7 @@ php_stream_smb_unlink(
 	smbc_unlink_fn smbc_unlink;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context TSRMLS_CC);
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -277,7 +279,7 @@ php_stream_smb_mkdir(
 		return 0;
 	}
 	/* Context */
-	state = php_libsmbclient_state_new(context TSRMLS_CC);
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -312,7 +314,7 @@ php_stream_smb_rmdir(
 	smbc_rmdir_fn smbc_rmdir;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context TSRMLS_CC);
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -349,7 +351,7 @@ php_stream_smb_rename(
 	smbc_rename_fn smbc_rename;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context TSRMLS_CC);
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -367,12 +369,111 @@ php_stream_smb_rename(
 	return 0;
 }
 
+static int php_smbdir_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
+{
+	smbc_closedir_fn smbc_closedir;
+	STREAM_DATA_FROM_STREAM();
+
+	if (close_handle) {
+		if (self->handle) {
+			smbc_closedir = smbc_getFunctionClosedir(self->state->ctx);
+			if (smbc_closedir) {
+				smbc_closedir(self->state->ctx, self->handle);
+			}
+			self->handle = NULL;
+		}
+	}
+	php_libsmbclient_state_free(self->state TSRMLS_CC);
+	efree(self);
+	stream->abstract = NULL;
+	return EOF;
+}
+
+static size_t php_smbdir_ops_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
+{
+	struct smbc_dirent *dirent;
+	php_stream_dirent *ent = (php_stream_dirent*)buf;
+	STREAM_DATA_FROM_STREAM();
+
+	if (!self || !self->handle) {
+		return 0;
+	}
+	/* avoid problems if someone mis-uses the stream */
+	if (count != sizeof(php_stream_dirent)) {
+		return 0;
+	}
+	if (!self->smbc_readdir) {
+		self->smbc_readdir = smbc_getFunctionReaddir(self->state->ctx);
+	}
+	if (self->smbc_readdir) {
+		if ((dirent = self->smbc_readdir(self->state->ctx, self->handle)) != NULL) {
+			PHP_STRLCPY(ent->d_name, dirent->name, sizeof(ent->d_name), dirent->namelen);
+			return sizeof(php_stream_dirent);
+		}
+	}
+	stream->eof = 1;
+	return 0;
+}
+
+static php_stream_ops	php_stream_smbdir_ops = {
+	NULL,
+	php_smbdir_ops_read,
+	php_smbdir_ops_close,
+	NULL,
+	"smbdir",
+	NULL, /* rewind */
+	NULL, /* cast */
+	NULL, /* stat */
+	NULL  /* set_option */
+};
+
+static php_stream *
+php_stream_smbdir_opener(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *path,
+	char *mode,
+#else
+	const char *path,
+	const char *mode,
+#endif
+	int options,
+	char **opened_path,
+	php_stream_context *context
+	STREAMS_DC TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_opendir_fn         smbc_opendir;
+	SMBCFILE               *handle;
+	php_smb_stream_data    *self;
+
+	/* Context */
+	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	if (!state) {
+		return NULL;
+	}
+	/* Directory */
+	if ((smbc_opendir = smbc_getFunctionOpendir(state->ctx)) == NULL) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return NULL;
+	}
+	if ((handle = smbc_opendir(state->ctx, path)) == NULL) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return NULL;
+	}
+	self = ecalloc(sizeof(*self), 1);
+	self->state  = state;
+	self->handle = handle;
+
+	return php_stream_alloc(&php_stream_smbdir_ops, self, NULL, mode);
+}
+
 static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_opener,
 	NULL,	/* close */
 	NULL,	/* fstat */
 	NULL,	/* stat */
-	NULL,	/* opendir */
+	php_stream_smbdir_opener,
 	"smb wrapper",
 	php_stream_smb_unlink,
 	php_stream_smb_rename,

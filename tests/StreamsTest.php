@@ -126,4 +126,13 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertTrue(is_dir($this->realdir.'2'), "Directory exists");
 		$this->assertTrue(rmdir($this->diruri.'2'));
 	}
+
+	public function
+	testReaddir ()
+	{
+		$local = scandir($n = dirname($this->realdir));
+		$smb   = scandir(dirname($this->diruri));
+
+		$this->assertEquals($local, $smb);
+	}
 }

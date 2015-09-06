@@ -508,7 +508,7 @@ ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
 }
 
 php_libsmbclient_state *
-php_libsmbclient_state_new (php_stream_context *context TSRMLS_DC)
+php_libsmbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 {
 	php_libsmbclient_state *state;
 	SMBCCTX *ctx;
@@ -560,7 +560,8 @@ php_libsmbclient_state_new (php_stream_context *context TSRMLS_DC)
 				return NULL;
 			}
 		}
-		/* Call from stream methods, init expected */
+	}
+	if (init) {
 		if (php_libsmbclient_state_init(state TSRMLS_CC)) {
 			php_libsmbclient_state_free(state TSRMLS_CC);
 			return NULL;
@@ -576,7 +577,7 @@ PHP_FUNCTION(smbclient_state_new)
 	if (zend_parse_parameters_none() == FAILURE) {
 		RETURN_FALSE;
 	}
-	if ((state = php_libsmbclient_state_new(NULL TSRMLS_CC)) == NULL) {
+	if ((state = php_libsmbclient_state_new(NULL, 0 TSRMLS_CC)) == NULL) {
 		RETURN_FALSE;
 	}
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
