@@ -242,14 +242,17 @@ php_stream_smb_unlink(
 		if (options & REPORT_ERRORS) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink not supported");
 		}
+		php_libsmbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_unlink(state->ctx, url) == 0) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	if (options & REPORT_ERRORS) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink fails: %s", strerror(errno));
 	}
+	php_libsmbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -281,12 +284,15 @@ php_stream_smb_mkdir(
 	/* Mkdir */
 	if ((smbc_mkdir = smbc_getFunctionMkdir(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir not supported");
+		php_libsmbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_mkdir(state->ctx, url, (mode_t)mode) == 0) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir fails: %s", strerror(errno));
+	php_libsmbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -313,12 +319,51 @@ php_stream_smb_rmdir(
 	/* Rmdir */
 	if ((smbc_rmdir = smbc_getFunctionRmdir(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir not supported");
+		php_libsmbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_rmdir(state->ctx, url) == 0) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir fails: %s", strerror(errno));
+	php_libsmbclient_state_free(state TSRMLS_CC);
+	return 0;
+}
+
+static int
+php_stream_smb_rename(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *url_from,
+	char *url_to,
+#else
+	const char *url_from,
+	const char *url_to,
+#endif
+	int options,
+	php_stream_context *context
+	TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_rename_fn smbc_rename;
+
+	/* Context */
+	state = php_libsmbclient_state_new(context TSRMLS_CC);
+	if (!state) {
+		return 0;
+	}
+	if ((smbc_rename = smbc_getFunctionRename(state->ctx)) == NULL) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rename not supported");
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return 0;
+	}
+	if (smbc_rename(state->ctx, url_from, state->ctx, url_to) == 0) {
+		php_libsmbclient_state_free(state TSRMLS_CC);
+		return 1;
+	}
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rename fails: %s", strerror(errno));
+	php_libsmbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -330,7 +375,7 @@ static php_stream_wrapper_ops smb_stream_wops = {
 	NULL,	/* opendir */
 	"smb wrapper",
 	php_stream_smb_unlink,
-	NULL,	/* rename */
+	php_stream_smb_rename,
 	php_stream_smb_mkdir,
 	php_stream_smb_rmdir,
 	NULL     /* metadata */

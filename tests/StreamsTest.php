@@ -98,7 +98,6 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertFileNotExists($this->realfile);
 	}
 
-
 	public function
 	testMkdirRmdir ()
 	{
@@ -107,5 +106,24 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertTrue(rmdir($this->diruri));
 		clearstatcache();
 		$this->assertFalse(is_dir($this->realdir), "Directory not exists");
+	}
+
+	public function
+	testRenameFile ()
+	{
+		$this->assertTrue(copy($this->readuri, $this->writeuri));
+		$this->assertTrue(rename($this->writeuri, $this->writeuri.'2'));
+		$this->assertFileExists($this->realfile.'2');
+		$this->assertTrue(unlink($this->writeuri.'2'));
+	}
+
+	public function
+	testRenameDir ()
+	{
+		$this->assertTrue(mkdir($this->diruri));
+		$this->assertTrue(is_dir($this->realdir), "Directory exists");
+		$this->assertTrue(rename($this->diruri, $this->diruri.'2'));
+		$this->assertTrue(is_dir($this->realdir.'2'), "Directory exists");
+		$this->assertTrue(rmdir($this->diruri.'2'));
 	}
 }
