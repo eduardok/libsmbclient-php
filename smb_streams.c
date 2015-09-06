@@ -188,7 +188,7 @@ php_stream_smb_opener(
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_libsmbclient_state_new(1 TSRMLS_CC);
+	state = php_libsmbclient_state_new(context TSRMLS_CC);
 	if (!state) {
 		return NULL;
 	}
@@ -233,7 +233,7 @@ php_stream_smb_unlink(
 	smbc_unlink_fn smbc_unlink;
 
 	/* Context */
-	state = php_libsmbclient_state_new(1 TSRMLS_CC);
+	state = php_libsmbclient_state_new(context TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -274,7 +274,7 @@ php_stream_smb_mkdir(
 		return 0;
 	}
 	/* Context */
-	state = php_libsmbclient_state_new(1 TSRMLS_CC);
+	state = php_libsmbclient_state_new(context TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -306,7 +306,7 @@ php_stream_smb_rmdir(
 	smbc_rmdir_fn smbc_rmdir;
 
 	/* Context */
-	state = php_libsmbclient_state_new(1 TSRMLS_CC);
+	state = php_libsmbclient_state_new(context TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}

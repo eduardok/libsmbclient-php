@@ -472,60 +472,6 @@ PHP_MINFO_FUNCTION(smbclient)
 	php_info_print_table_end();
 }
 
-php_libsmbclient_state *
-php_libsmbclient_state_new (int init TSRMLS_DC)
-{
-	php_libsmbclient_state *state;
-	SMBCCTX *ctx;
-
-	if ((ctx = smbc_new_context()) == NULL) {
-		switch (errno) {
-			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
-			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error (%d)", errno); break;
-		};
-		return NULL;
-	}
-	state = emalloc(sizeof(php_libsmbclient_state));
-	state->ctx = ctx;
-	state->wrkg = NULL;
-	state->user = NULL;
-	state->pass = NULL;
-	state->wrkglen = 0;
-	state->userlen = 0;
-	state->passlen = 0;
-	state->err = 0;
-
-	smbc_setFunctionAuthDataWithContext(state->ctx, smbclient_auth_func);
-
-	/* Must also save a pointer to the state object inside the context, to
-	 * find the state from the context in the auth function: */
-	smbc_setOptionUserData(ctx, (void *)state);
-
-	/* Force full, modern timenames when getting xattrs: */
-	smbc_setOptionFullTimeNames(state->ctx, 1);
-
-	if (init) {
-		if (php_libsmbclient_state_init(state TSRMLS_CC)) {
-			php_libsmbclient_state_free(state TSRMLS_CC);
-			return NULL;
-		}
-	}
-	return state;
-}
-
-PHP_FUNCTION(smbclient_state_new)
-{
-	php_libsmbclient_state *state;
-
-	if (zend_parse_parameters_none() == FAILURE) {
-		RETURN_FALSE;
-	}
-	if ((state = php_libsmbclient_state_new(0 TSRMLS_CC)) == NULL) {
-		RETURN_FALSE;
-	}
-	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
-}
-
 static int
 ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
 {
@@ -559,6 +505,81 @@ ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
 			php_error(E_WARNING, "invalid datatype for %s", varname);
 			return 0;
 	}
+}
+
+php_libsmbclient_state *
+php_libsmbclient_state_new (php_stream_context *context TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	SMBCCTX *ctx;
+
+	if ((ctx = smbc_new_context()) == NULL) {
+		switch (errno) {
+			case ENOMEM: php_error(E_WARNING, "Couldn't create smbclient state: insufficient memory"); break;
+			default: php_error(E_WARNING, "Couldn't create smbclient state: unknown error (%d)", errno); break;
+		};
+		return NULL;
+	}
+	state = emalloc(sizeof(php_libsmbclient_state));
+	state->ctx = ctx;
+	state->wrkg = NULL;
+	state->user = NULL;
+	state->pass = NULL;
+	state->wrkglen = 0;
+	state->userlen = 0;
+	state->passlen = 0;
+	state->err = 0;
+
+	smbc_setFunctionAuthDataWithContext(state->ctx, smbclient_auth_func);
+
+	/* Must also save a pointer to the state object inside the context, to
+	 * find the state from the context in the auth function: */
+	smbc_setOptionUserData(ctx, (void *)state);
+
+	/* Force full, modern timenames when getting xattrs: */
+	smbc_setOptionFullTimeNames(state->ctx, 1);
+
+	if (context) {
+		zval **tmpzval;
+
+		if (php_stream_context_get_option(context, "smb", "workgroup", &tmpzval) == SUCCESS) {
+			if (ctx_init_getauth(*tmpzval, &state->wrkg, &state->wrkglen, "workgroup") == 0) {
+				php_libsmbclient_state_free(state TSRMLS_CC);
+				return NULL;
+			}
+		}
+		if (php_stream_context_get_option(context, "smb", "username", &tmpzval) == SUCCESS) {
+			if (ctx_init_getauth(*tmpzval, &state->user, &state->userlen, "username") == 0) {
+				php_libsmbclient_state_free(state TSRMLS_CC);
+				return NULL;
+			}
+		}
+		if (php_stream_context_get_option(context, "smb", "password", &tmpzval) == SUCCESS) {
+			if (ctx_init_getauth(*tmpzval, &state->pass, &state->passlen, "password") == 0) {
+				php_libsmbclient_state_free(state TSRMLS_CC);
+				return NULL;
+			}
+		}
+		/* Call from stream methods, init expected */
+		if (php_libsmbclient_state_init(state TSRMLS_CC)) {
+			php_libsmbclient_state_free(state TSRMLS_CC);
+			return NULL;
+		}
+	}
+	return state;
+}
+
+PHP_FUNCTION(smbclient_state_new)
+{
+	php_libsmbclient_state *state;
+
+	if (zend_parse_parameters_none() == FAILURE) {
+		RETURN_FALSE;
+	}
+	if ((state = php_libsmbclient_state_new(NULL TSRMLS_CC)) == NULL) {
+		RETURN_FALSE;
+	}
+	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
 }
 
 PHP_FUNCTION(smbclient_version)

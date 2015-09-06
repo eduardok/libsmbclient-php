@@ -14,6 +14,7 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 	{
 		$this->readuri  = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
 		$this->writeuri = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamfile.txt';
+		$this->writealt = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/streamfile.txt';
 		$this->diruri   = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/streamdir';
 		$this->realfile = SMB_LOCAL . '/streamfile.txt';
 		$this->realdir  = SMB_LOCAL . '/streamdir';
@@ -65,6 +66,18 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 	testPutContents ()
 	{
 		$len = file_put_contents($this->writeuri, $this->testdata);
+		$this->assertEquals(strlen($this->testdata), $len);
+		$this->assertFileExists($this->realfile);
+	}
+
+	public function
+	testPutContentsContext ()
+	{
+		$context = stream_context_create(array('smb' => array(
+			'username' => SMB_USER,
+			'password' => SMB_PASS
+		)));
+		$len = file_put_contents($this->writealt, $this->testdata, 0, $context);
 		$this->assertEquals(strlen($this->testdata), $len);
 		$this->assertFileExists($this->realfile);
 	}
