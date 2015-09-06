@@ -645,6 +645,18 @@ array smbclient_fstatvfs ( resource $state, resource $file_or_dir )
 Returns an array with file system statistics for the given file or directory resource, or `false` on failure.
 See `smbclient_statvfs` for a description of the returned array.
 
+### streams support
+
+Starting with version 0.8.0, streams support is enabled.
+Most of standard functions work transparently with 'smb' URIs.
+
+```php
+  echo file_get_contents('smb://user:password@smbserver/share/file.txt');
+```
+
+Which include: copy, fileperms, fopen, mkdir, opendir, rmdir, rename, scandir, stat, unlink...
+Notice: touch and chmod functions require PHP >= 5.4
+
 ## Examples
 
 Some bare-bones examples of how to use libsmbclient-php.
@@ -705,3 +717,4 @@ smbclient_close($state, $file);
 // Free the state:
 smbclient_state_free($state);
 ```
+
