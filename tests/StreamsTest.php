@@ -153,4 +153,35 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals($local['size'], $stat['size']);
 		/* can't compare other values as local/remote are different */
 	}
+
+	public function
+	testChmod ()
+	{
+		if (version_compare(PHP_VERSION, '5.4.0', '<')) {
+			$this->markTestSkipped("PHP > 5.4 needed");
+		}
+		$this->assertTrue(copy($this->readuri, $this->writeuri));
+		$old = fileperms($this->writeuri) & 0777;
+
+		/* noop only test */
+		$this->assertTrue(chmod($this->writeuri, $old));
+		$new = fileperms($this->writeuri) & 0777;
+		$this->assertEquals($old, $new);
+	}
+
+	public function
+	testTouch ()
+	{
+		if (version_compare(PHP_VERSION, '5.4.0', '<')) {
+			$this->markTestSkipped("PHP > 5.4 needed");
+		}
+		$mt = mktime(0,0,0,9,5,2015);
+		$at = mktime(0,0,0,9,6,2015);
+		$this->assertTrue(touch($this->writeuri, $mt, $at));
+		$this->assertFileExists($this->realfile);
+
+		$stat = stat($this->writeuri);
+		$this->assertEquals($mt, $stat['mtime'], "mtime");
+		$this->assertEquals($at, $stat['atime'], "atime");
+	}
 }

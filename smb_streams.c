@@ -46,6 +46,7 @@
 #include "php.h"
 #include "ext/standard/url.h"
 #include "ext/standard/info.h"
+#include "ext/standard/php_filestat.h"
 #include "php_libsmbclient.h"
 
 #include <libsmbclient.h>
@@ -504,6 +505,90 @@ php_stream_smb_stat(
 	return -1;
 }
 
+#if PHP_VERSION_ID >= 50400
+static int
+php_stream_smb_metadata(
+	php_stream_wrapper *wrapper,
+#if PHP_VERSION_ID < 50600
+	char *url,
+#else
+	const char *url,
+#endif
+	int option,
+	void *value,
+	php_stream_context *context
+	TSRMLS_DC)
+{
+	php_libsmbclient_state *state;
+	smbc_chmod_fn           smbc_chmod;
+	smbc_open_fn            smbc_open;
+	smbc_utimes_fn          smbc_utimes;
+	smbc_close_fn           smbc_close;
+	mode_t                  mode;
+	struct utimbuf         *newtime;
+	struct timeval          times[2];
+	SMBCFILE               *handle;
+	int                     ret = 0;
+
+	switch(option) {
+		case PHP_STREAM_META_TOUCH:
+			newtime = (struct utimbuf *)value;
+
+			/* Context */
+			state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+			if (!state) {
+				return 0;
+			}
+			/* Create + Utimes */
+			if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL
+				|| (smbc_close = smbc_getFunctionClose(state->ctx)) == NULL
+				|| (smbc_utimes = smbc_getFunctionUtimes(state->ctx)) == NULL) {
+				ret = -1;
+			} else {
+				handle = smbc_open(state->ctx, url, O_EXCL|O_CREAT, 0666);
+				if (handle) {
+					smbc_close(state->ctx, handle);
+				}
+				if (newtime) {
+					times[0].tv_usec = 0;
+					times[0].tv_sec = newtime->actime;
+					times[1].tv_usec = 0;
+					times[1].tv_sec = newtime->modtime;
+
+					ret = smbc_utimes(state->ctx, url, times);
+				}
+			}
+			break;
+
+		case PHP_STREAM_META_ACCESS:
+			mode = (mode_t)*(long *)value;
+			/* Context */
+			state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+			if (!state) {
+				return 0;
+			}
+			/* Chmod */
+			if ((smbc_chmod = smbc_getFunctionChmod(state->ctx)) == NULL) {
+				ret = -1;
+			} else {
+				ret = smbc_chmod(state->ctx, url, (mode_t)mode);
+			}
+			break;
+
+		default:
+			php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Unknown option %d for stream_metadata", option);
+			return 0;
+	}
+	php_libsmbclient_state_free(state TSRMLS_CC);
+	if (ret == -1) {
+		php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Operation failed: %s", strerror(errno));
+		return 0;
+	}
+	php_clear_stat_cache(0, NULL, 0 TSRMLS_CC);
+	return 1;
+}
+#endif
+
 static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_opener,
 	NULL,	/* close */
@@ -515,7 +600,9 @@ static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_rename,
 	php_stream_smb_mkdir,
 	php_stream_smb_rmdir,
-	NULL     /* metadata */
+#if PHP_VERSION_ID >= 50400
+	php_stream_smb_metadata
+#endif
 };
 
 php_stream_wrapper php_stream_smb_wrapper = {
