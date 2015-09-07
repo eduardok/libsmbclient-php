@@ -184,4 +184,14 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals($mt, $stat['mtime'], "mtime");
 		$this->assertEquals($at, $stat['atime'], "atime");
 	}
+
+	public function
+	testFileinfo ()
+	{
+		if (!extension_loaded('fileinfo')) {
+			$this->markTestSkipped('Fileinfo extension needed');
+		}
+		$fi = new finfo(FILEINFO_MIME_TYPE);
+		$this->assertEquals('text/plain', $fi->file($this->readuri));
+	}
 }
