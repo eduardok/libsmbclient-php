@@ -75,6 +75,6 @@ if test "$PHP_LIBSMBCLIENT" != "no"; then
   ])
 
   PHP_SUBST(LIBSMBCLIENT_SHARED_LIBADD)
-  PHP_NEW_EXTENSION(libsmbclient, libsmbclient.c, $ext_shared)
+  PHP_NEW_EXTENSION(libsmbclient, libsmbclient.c smb_streams.c, $ext_shared)
 
 fi
