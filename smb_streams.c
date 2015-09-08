@@ -69,6 +69,9 @@ static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 	smbc_close_fn smbc_close;
 	STREAM_DATA_FROM_STREAM();
 
+	if (!self) {
+		return EOF;
+	}
 	if (close_handle) {
 		if (self->handle) {
 			smbc_close = smbc_getFunctionClose(self->state->ctx);
@@ -133,6 +136,9 @@ static int php_smb_ops_stat(php_stream *stream, php_stream_statbuf *ssb TSRMLS_D
 	smbc_fstat_fn smbc_fstat;
 	STREAM_DATA_FROM_STREAM();
 
+	if (!self || !self->handle) {
+		return -1;
+	}
 	if ((smbc_fstat = smbc_getFunctionFstat(self->state->ctx)) == NULL) {
 		return -1;
 	}
@@ -146,6 +152,9 @@ static int php_smb_ops_seek(php_stream *stream, off_t offset, int whence, off_t 
 {
 	STREAM_DATA_FROM_STREAM();
 
+	if (!self || !self->handle) {
+		return -1;
+	}
 	if (!self->smbc_lseek) {
 		self->smbc_lseek = smbc_getFunctionLseek(self->state->ctx);
 	}
@@ -544,19 +553,20 @@ php_stream_smb_metadata(
 				|| (smbc_close = smbc_getFunctionClose(state->ctx)) == NULL
 				|| (smbc_utimes = smbc_getFunctionUtimes(state->ctx)) == NULL) {
 				ret = -1;
-			} else {
-				handle = smbc_open(state->ctx, url, O_EXCL|O_CREAT, 0666);
-				if (handle) {
-					smbc_close(state->ctx, handle);
-				}
-				if (newtime) {
-					times[0].tv_usec = 0;
-					times[0].tv_sec = newtime->actime;
-					times[1].tv_usec = 0;
-					times[1].tv_sec = newtime->modtime;
+				break;
+			}
+			/* Create can fail if file exists, ignore result */
+			handle = smbc_open(state->ctx, url, O_EXCL|O_CREAT, 0666);
+			if (handle) {
+				smbc_close(state->ctx, handle);
+			}
+			if (newtime) {
+				times[0].tv_usec = 0;
+				times[0].tv_sec = newtime->actime;
+				times[1].tv_usec = 0;
+				times[1].tv_sec = newtime->modtime;
 
-					ret = smbc_utimes(state->ctx, url, times);
-				}
+				ret = smbc_utimes(state->ctx, url, times);
 			}
 			break;
 
@@ -570,9 +580,9 @@ php_stream_smb_metadata(
 			/* Chmod */
 			if ((smbc_chmod = smbc_getFunctionChmod(state->ctx)) == NULL) {
 				ret = -1;
-			} else {
-				ret = smbc_chmod(state->ctx, url, (mode_t)mode);
+				break;
 			}
+			ret = smbc_chmod(state->ctx, url, (mode_t)mode);
 			break;
 
 		default:
@@ -595,13 +605,13 @@ static php_stream_wrapper_ops smb_stream_wops = {
 	NULL,	/* fstat */
 	php_stream_smb_stat,
 	php_stream_smbdir_opener,
-	"smb wrapper",
+	"smb",
 	php_stream_smb_unlink,
 	php_stream_smb_rename,
 	php_stream_smb_mkdir,
-	php_stream_smb_rmdir,
+	php_stream_smb_rmdir
 #if PHP_VERSION_ID >= 50400
-	php_stream_smb_metadata
+	, php_stream_smb_metadata
 #endif
 };
 
