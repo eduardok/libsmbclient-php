@@ -46,7 +46,7 @@
 #include "ext/standard/url.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_filestat.h"
-#include "php_libsmbclient.h"
+#include "php_smbclient.h"
 
 #include <libsmbclient.h>
 

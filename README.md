@@ -43,7 +43,7 @@ make install INSTALL_ROOT=/tmp/smbc
 - Activate libsmbclient-php in php.ini:
 
 ```sh
-extension="libsmbclient.so"
+extension="smbclient.so"
 ```
 
 Contributions and bug reports

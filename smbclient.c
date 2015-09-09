@@ -46,17 +46,17 @@
 
 #include "php.h"
 #include "ext/standard/info.h"
-#include "php_libsmbclient.h"
+#include "php_smbclient.h"
 
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own copy of
  * the php_libsmbclient_globals structure. Else we use a single global copy: */
 #ifdef ZTS
-static int libsmbclient_globals_id;
+static int smbclient_globals_id;
 #else
-static php_libsmbclient_globals libsmbclient_globals;
+static php_smbclient_globals smbclient_globals;
 #endif
 
-static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient_globals_p TSRMLS_DC)
+static void php_smbclient_init_globals(php_smbclient_globals *smbclient_globals_p TSRMLS_DC)
 {
 	/* This function initializes the thread-local storage.
 	 * We currently don't use this. */
@@ -263,7 +263,7 @@ ZEND_END_ARG_INFO()
 
 /* }}} */
 
-static zend_function_entry libsmbclient_functions[] =
+static zend_function_entry smbclient_functions[] =
 {
 	PHP_FE(smbclient_version, arginfo_smbclient_void)
 	PHP_FE(smbclient_library_version, arginfo_smbclient_void)
@@ -304,21 +304,35 @@ static zend_function_entry libsmbclient_functions[] =
 #endif
 };
 
-zend_module_entry libsmbclient_module_entry =
+zend_module_entry smbclient_module_entry =
 	{ STANDARD_MODULE_HEADER
-	, "libsmbclient"		/* name                  */
-	, libsmbclient_functions	/* functions             */
+	, "smbclient"		/* name                  */
+	, smbclient_functions	/* functions             */
 	, PHP_MINIT(smbclient)		/* module_startup_func   */
 	, PHP_MSHUTDOWN(smbclient)	/* module_shutdown_func  */
 	, PHP_RINIT(smbclient)		/* request_startup_func  */
 	, NULL				/* request_shutdown_func */
 	, PHP_MINFO(smbclient)		/* info_func             */
-	, LIBSMBCLIENT_VERSION		/* version               */
+	, PHP_SMBCLIENT_VERSION		/* version               */
 	, STANDARD_MODULE_PROPERTIES
 	} ;
 
-#ifdef COMPILE_DL_LIBSMBCLIENT
-ZEND_GET_MODULE(libsmbclient)
+zend_module_entry old_module_entry = {
+	STANDARD_MODULE_HEADER,
+	"libsmbclient",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	PHP_SMBCLIENT_VERSION,
+	STANDARD_MODULE_PROPERTIES,
+};
+
+
+#ifdef COMPILE_DL_SMBCLIENT
+ZEND_GET_MODULE(smbclient)
 #endif
 
 static void
@@ -418,9 +432,9 @@ PHP_MINIT_FUNCTION(smbclient)
 	/* If ZTS is defined, allocate and init a copy of the global
 	 * datastructure for each thread: */
 	#ifdef ZTS
-	ts_allocate_id(&libsmbclient_globals_id, sizeof(php_libsmbclient_globals), (ts_allocate_ctor) php_libsmbclient_init_globals, NULL);
+	ts_allocate_id(&smbclient_globals_id, sizeof(php_smbclient_globals), (ts_allocate_ctor) php_smbclient_init_globals, NULL);
 	#else
-	php_libsmbclient_init_globals(&libsmbclient_globals);
+	php_smbclient_init_globals(&smbclient_globals);
 	#endif
 
 	/* Constants for smbclient_setxattr: */
@@ -470,6 +484,9 @@ PHP_MINIT_FUNCTION(smbclient)
 
 	php_register_url_stream_wrapper("smb", &php_stream_smb_wrapper TSRMLS_CC);
 
+	/* register with old name for code using extension_loaded(libsmbclient) */
+	zend_register_internal_module(&old_module_entry TSRMLS_CC);
+
 	return SUCCESS;
 }
 
@@ -486,8 +503,8 @@ PHP_MSHUTDOWN_FUNCTION(smbclient)
 PHP_MINFO_FUNCTION(smbclient)
 {
 	php_info_print_table_start();
-	php_info_print_table_row(2, "libsmbclient Support", "enabled");
-	php_info_print_table_row(2, "libsmbclient extension Version", LIBSMBCLIENT_VERSION);
+	php_info_print_table_row(2, "smbclient Support", "enabled");
+	php_info_print_table_row(2, "smbclient extension Version", PHP_SMBCLIENT_VERSION);
 	php_info_print_table_row(2, "libsmbclient library Version", smbc_version());
 	php_info_print_table_end();
 }
@@ -645,9 +662,9 @@ PHP_FUNCTION(smbclient_version)
 		RETURN_FALSE;
 	}
 #if PHP_MAJOR_VERSION >= 7
-	RETURN_STRING(LIBSMBCLIENT_VERSION);
+	RETURN_STRING(PHP_SMBCLIENT_VERSION);
 #else
-	RETURN_STRING(LIBSMBCLIENT_VERSION, 1);
+	RETURN_STRING(PHP_SMBCLIENT_VERSION, 1);
 #endif
 }
 

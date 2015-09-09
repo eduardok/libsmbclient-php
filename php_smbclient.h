@@ -38,18 +38,18 @@
  * ------------------------------------------------------------------
  */
 
-#ifndef PHP_LIBSMBCLIENT_H
-#define PHP_LIBSMBCLIENT_H
+#ifndef PHP_SMBCLIENT_H
+#define PHP_SMBCLIENT_H
 
 #include <libsmbclient.h>
 
-#define LIBSMBCLIENT_VERSION "0.8.0-dev"
+#define PHP_SMBCLIENT_VERSION "0.8.0-dev"
 
-extern zend_module_entry libsmbclient_module_entry;
+extern zend_module_entry smbclient_module_entry;
 #define phpext_libsmbclient_ptr &libsmbclient_module_entry
 
 typedef struct {
-} php_libsmbclient_globals;
+} php_smbclient_globals;
 
 typedef struct _php_libsmbclient_state
 {
@@ -117,4 +117,4 @@ void                     php_libsmbclient_state_free (php_libsmbclient_state *st
 int                      php_libsmbclient_state_init (php_libsmbclient_state *state TSRMLS_DC);
 int                      flagstring_to_smbflags (const char *flags, int flags_len, int *retval TSRMLS_DC);
 
-#endif /* PHP_LIBSMBCLIENT_H */
+#endif /* PHP_SMBCLIENT_H */
