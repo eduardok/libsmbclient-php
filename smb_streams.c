@@ -7,7 +7,6 @@
  *               2009 - 2014, Eduardo Bacchi Kienetz
  *               2013 - 2015, Alfred Klomp
  *               2015,        Remi Collet
- *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -188,7 +187,11 @@ php_stream_smb_opener(
 	const char *mode,
 #endif
 	int options,
+#if PHP_MAJOR_VERSION < 7
 	char **opened_path,
+#else
+	zend_string **opened_path,
+#endif
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {
@@ -448,7 +451,11 @@ php_stream_smbdir_opener(
 	const char *mode,
 #endif
 	int options,
+#if PHP_MAJOR_VERSION < 7
 	char **opened_path,
+#else
+	zend_string **opened_path,
+#endif
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {

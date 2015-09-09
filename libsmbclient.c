@@ -6,6 +6,7 @@
  * Copyright (c) 2003,        Matthew Sachs
  *               2009 - 2014, Eduardo Bacchi Kienetz
  *               2013 - 2015, Alfred Klomp
+ *               2015,        Remi Collet
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,6 +67,13 @@ static void php_libsmbclient_init_globals(php_libsmbclient_globals *libsmbclient
 
 static int le_libsmbclient_state;
 static int le_libsmbclient_file;
+
+#if PHP_MAJOR_VERSION >= 7
+typedef size_t strsize_t;
+#else
+typedef int strsize_t;
+typedef long zend_long;
+#endif
 
 enum {
 	SMBCLIENT_OPT_OPEN_SHAREMODE = 1,
@@ -375,13 +383,25 @@ php_libsmbclient_state_free (php_libsmbclient_state *state TSRMLS_DC)
 }
 
 static inline void
-smbclient_state_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+smbclient_state_dtor (
+#if PHP_MAJOR_VERSION >= 7
+	zend_resource *rsrc
+#else
+	zend_rsrc_list_entry *rsrc
+#endif
+	TSRMLS_DC)
 {
 	php_libsmbclient_state_free((php_libsmbclient_state *)rsrc->ptr TSRMLS_CC);
 }
 
 static void
-smbclient_file_dtor (zend_rsrc_list_entry *rsrc TSRMLS_DC)
+smbclient_file_dtor (
+#if PHP_VERSION_ID >= 70000
+	zend_resource *rsrc
+#else
+	zend_rsrc_list_entry *rsrc
+#endif
+	TSRMLS_DC)
 {
 	/* Because libsmbclient's file/dir close functions require a pointer to
 	 * a context which we don't have, we cannot reliably destroy a file
@@ -489,12 +509,21 @@ ctx_init_getauth (zval *z, char **dest, int *destlen, char *varname)
 		case IS_NULL:
 			return 1;
 
+#if PHP_MAJOR_VERSION >= 7
+		case IS_TRUE:
+			php_error(E_WARNING, "invalid value for %s", varname);
+			return 0;
+
+		case IS_FALSE:
+			return 1;
+#else
 		case IS_BOOL:
 			if (Z_LVAL_P(z) == 1) {
 				php_error(E_WARNING, "invalid value for %s", varname);
 				return 0;
 			}
 			return 1;
+#endif
 
 		case IS_STRING:
 			*destlen = Z_STRLEN_P(z);
@@ -540,6 +569,28 @@ php_libsmbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 	smbc_setOptionFullTimeNames(state->ctx, 1);
 
 	if (context) {
+#if PHP_MAJOR_VERSION >= 7
+		zval *tmpzval;
+
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "workgroup"))) {
+			if (ctx_init_getauth(tmpzval, &state->wrkg, &state->wrkglen, "workgroup") == 0) {
+				php_libsmbclient_state_free(state);
+				return NULL;
+			}
+		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "username"))) {
+			if (ctx_init_getauth(tmpzval, &state->user, &state->userlen, "username") == 0) {
+				php_libsmbclient_state_free(state);
+				return NULL;
+			}
+		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "password"))) {
+			if (ctx_init_getauth(tmpzval, &state->pass, &state->passlen, "password") == 0) {
+				php_libsmbclient_state_free(state);
+				return NULL;
+			}
+		}
+#else
 		zval **tmpzval;
 
 		if (php_stream_context_get_option(context, "smb", "workgroup", &tmpzval) == SUCCESS) {
@@ -560,6 +611,7 @@ php_libsmbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 				return NULL;
 			}
 		}
+#endif
 	}
 	if (init) {
 		if (php_libsmbclient_state_init(state TSRMLS_CC)) {
@@ -580,7 +632,11 @@ PHP_FUNCTION(smbclient_state_new)
 	if ((state = php_libsmbclient_state_new(NULL, 0 TSRMLS_CC)) == NULL) {
 		RETURN_FALSE;
 	}
+#if PHP_MAJOR_VERSION >= 7
+	ZVAL_RES(return_value, zend_register_resource(state, le_libsmbclient_state));
+#else
 	ZEND_REGISTER_RESOURCE(return_value, state, le_libsmbclient_state);
+#endif
 }
 
 PHP_FUNCTION(smbclient_version)
@@ -588,7 +644,11 @@ PHP_FUNCTION(smbclient_version)
 	if (zend_parse_parameters_none() == FAILURE) {
 		RETURN_FALSE;
 	}
+#if PHP_MAJOR_VERSION >= 7
+	RETURN_STRING(LIBSMBCLIENT_VERSION);
+#else
 	RETURN_STRING(LIBSMBCLIENT_VERSION, 1);
+#endif
 }
 
 PHP_FUNCTION(smbclient_library_version)
@@ -596,7 +656,11 @@ PHP_FUNCTION(smbclient_library_version)
 	if (zend_parse_parameters_none() == FAILURE) {
 		RETURN_FALSE;
 	}
+#if PHP_MAJOR_VERSION >= 7
+	RETURN_STRING(smbc_version());
+#else
 	RETURN_STRING(smbc_version(), 1);
+#endif
 }
 
 int
@@ -617,6 +681,33 @@ php_libsmbclient_state_init (php_libsmbclient_state *state TSRMLS_DC)
 	return 1;
 }
 
+#if PHP_MAJOR_VERSION >= 7
+
+#define SMB_FETCH_RESOURCE(_state, _type, _zval, _name, _le) \
+	if ((_state = (_type)zend_fetch_resource(Z_RES_P(*_zval), _name, _le)) == NULL) { \
+		RETURN_FALSE; \
+	}
+#else
+
+#define SMB_FETCH_RESOURCE(_state, _type, _zval, _name, _le) \
+	ZEND_FETCH_RESOURCE(_state, _type, _zval, -1, _name, _le);
+
+#endif
+
+#define STATE_FROM_ZSTATE \
+	SMB_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state); \
+	if (state == NULL || state->ctx == NULL) { \
+		php_error(E_WARNING, PHP_LIBSMBCLIENT_STATE_NAME " not found"); \
+		RETURN_FALSE; \
+	}
+
+#define FILE_FROM_ZFILE \
+	SMB_FETCH_RESOURCE(file, SMBCFILE *, &zfile, PHP_LIBSMBCLIENT_FILE_NAME, le_libsmbclient_file); \
+	if (file == NULL) { \
+		php_error(E_WARNING, PHP_LIBSMBCLIENT_FILE_NAME " not found"); \
+		RETURN_FALSE; \
+	}
+
 PHP_FUNCTION(smbclient_state_init)
 {
 	zval *zstate;
@@ -628,7 +719,7 @@ PHP_FUNCTION(smbclient_state_init)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|zzz", &zstate, &zwrkg, &zuser, &zpass) != SUCCESS) {
 		RETURN_FALSE;
 	}
-	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	SMB_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
 
 	if (state->ctx == NULL) {
 		php_error(E_WARNING, "Couldn't init SMB context: context is null");
@@ -657,7 +748,7 @@ PHP_FUNCTION(smbclient_state_errno)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
 		RETURN_LONG(0);
 	}
-	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	SMB_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
 	RETURN_LONG(state->err);
 }
 
@@ -669,15 +760,23 @@ PHP_FUNCTION(smbclient_state_free)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zstate) != SUCCESS) {
 		RETURN_FALSE;
 	}
-	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	SMB_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
 
 	if (state->ctx == NULL) {
+#if PHP_MAJOR_VERSION >= 7
+		zend_list_close(Z_RES_P(zstate));
+#else
 		zend_list_delete(Z_LVAL_P(zstate));
+#endif
 		RETURN_TRUE;
 	}
 	if (smbc_free_context(state->ctx, 1) == 0) {
 		state->ctx = NULL;
+#if PHP_MAJOR_VERSION >= 7
+		zend_list_close(Z_RES_P(zstate));
+#else
 		zend_list_delete(Z_LVAL_P(zstate));
+#endif
 		RETURN_TRUE;
 	}
 	switch (state->err = errno) {
@@ -688,24 +787,10 @@ PHP_FUNCTION(smbclient_state_free)
 	RETURN_FALSE;
 }
 
-#define STATE_FROM_ZSTATE \
-	ZEND_FETCH_RESOURCE(state, php_libsmbclient_state *, &zstate, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state); \
-	if (state == NULL || state->ctx == NULL) { \
-		php_error(E_WARNING, PHP_LIBSMBCLIENT_STATE_NAME " not found"); \
-		RETURN_FALSE; \
-	}
-
-#define FILE_FROM_ZFILE \
-	ZEND_FETCH_RESOURCE(file, SMBCFILE *, &zfile, -1, PHP_LIBSMBCLIENT_FILE_NAME, le_libsmbclient_file); \
-	if (file == NULL) { \
-		php_error(E_WARNING, PHP_LIBSMBCLIENT_FILE_NAME " not found"); \
-		RETURN_FALSE; \
-	}
-
 PHP_FUNCTION(smbclient_opendir)
 {
 	char *path;
-	int path_len;
+	strsize_t path_len;
 	zval *zstate;
 	SMBCFILE *dir;
 	smbc_opendir_fn smbc_opendir;
@@ -720,7 +805,11 @@ PHP_FUNCTION(smbclient_opendir)
 		RETURN_FALSE;
 	}
 	if ((dir = smbc_opendir(state->ctx, path)) != NULL) {
+#if PHP_MAJOR_VERSION >= 7
+		ZVAL_RES(return_value, zend_register_resource(dir, le_libsmbclient_file));
+#else
 		ZEND_REGISTER_RESOURCE(return_value, dir, le_libsmbclient_file);
+#endif
 		return;
 	}
 	hide_password(path, path_len);
@@ -786,9 +875,15 @@ PHP_FUNCTION(smbclient_readdir)
 		php_error(E_WARNING, "Couldn't initialize array");
 		RETURN_FALSE;
 	}
+#if PHP_MAJOR_VERSION >= 7
+	add_assoc_string(return_value, "type", type_to_string(dirent->smbc_type));
+	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen);
+	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen);
+#else
 	add_assoc_string(return_value, "type", type_to_string(dirent->smbc_type), 1);
 	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen, 1);
 	add_assoc_stringl(return_value, "name", dirent->name, dirent->namelen, 1);
+#endif
 }
 
 PHP_FUNCTION(smbclient_closedir)
@@ -809,7 +904,11 @@ PHP_FUNCTION(smbclient_closedir)
 		RETURN_FALSE;
 	}
 	if (smbc_closedir(state->ctx, file) == 0) {
+#if PHP_MAJOR_VERSION >= 7
+		zend_list_close(Z_RES_P(zfile));
+#else
 		zend_list_delete(Z_LVAL_P(zfile));
+#endif
 		RETURN_TRUE;
 	}
 	switch (state->err = errno) {
@@ -822,7 +921,7 @@ PHP_FUNCTION(smbclient_closedir)
 PHP_FUNCTION(smbclient_rename)
 {
 	char *ourl, *nurl;
-	int ourl_len, nurl_len;
+	strsize_t ourl_len, nurl_len;
 	zval *zstate_old;
 	zval *zstate_new;
 	smbc_rename_fn smbc_rename;
@@ -832,8 +931,8 @@ PHP_FUNCTION(smbclient_rename)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsrs", &zstate_old, &ourl, &ourl_len, &zstate_new, &nurl, &nurl_len) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(state_old, php_libsmbclient_state *, &zstate_old, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
-	ZEND_FETCH_RESOURCE(state_new, php_libsmbclient_state *, &zstate_new, -1, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	SMB_FETCH_RESOURCE(state_old, php_libsmbclient_state *, &zstate_old, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
+	SMB_FETCH_RESOURCE(state_new, php_libsmbclient_state *, &zstate_new, PHP_LIBSMBCLIENT_STATE_NAME, le_libsmbclient_state);
 
 	if (state_old == NULL || state_old->ctx == NULL) {
 		php_error(E_WARNING, "old " PHP_LIBSMBCLIENT_STATE_NAME " is null");
@@ -868,7 +967,7 @@ PHP_FUNCTION(smbclient_rename)
 PHP_FUNCTION(smbclient_unlink)
 {
 	char *url;
-	int url_len;
+	strsize_t url_len;
 	zval *zstate;
 	smbc_unlink_fn smbc_unlink;
 	php_libsmbclient_state *state;
@@ -901,8 +1000,8 @@ PHP_FUNCTION(smbclient_unlink)
 PHP_FUNCTION(smbclient_mkdir)
 {
 	char *path = NULL;
-	int path_len;
-	long mode = 0777;	/* Same as PHP's native mkdir() */
+	strsize_t path_len;
+	zend_long mode = 0777;	/* Same as PHP's native mkdir() */
 	zval *zstate;
 	smbc_mkdir_fn smbc_mkdir;
 	php_libsmbclient_state *state;
@@ -933,7 +1032,7 @@ PHP_FUNCTION(smbclient_mkdir)
 PHP_FUNCTION(smbclient_rmdir)
 {
 	char *url;
-	int url_len;
+	strsize_t url_len;
 	zval *zstate;
 	smbc_rmdir_fn smbc_rmdir;
 	php_libsmbclient_state *state;
@@ -966,7 +1065,7 @@ PHP_FUNCTION(smbclient_stat)
 {
 	char *file;
 	struct stat statbuf;
-	int file_len;
+	strsize_t file_len;
 	zval *zstate;
 	smbc_stat_fn smbc_stat;
 	php_libsmbclient_state *state;
@@ -1124,9 +1223,9 @@ err:
 PHP_FUNCTION(smbclient_open)
 {
 	char *file, *flags;
-	int file_len, flags_len;
+	strsize_t file_len, flags_len;
 	int smbflags;
-	long mode = 0666;
+	zend_long mode = 0666;
 	zval *zstate;
 	SMBCFILE *handle;
 	smbc_open_fn smbc_open;
@@ -1147,7 +1246,11 @@ PHP_FUNCTION(smbclient_open)
 		RETURN_FALSE;
 	}
 	if ((handle = smbc_open(state->ctx, file, smbflags, mode)) != NULL) {
+#if PHP_MAJOR_VERSION >= 7
+		ZVAL_RES(return_value, zend_register_resource(handle, le_libsmbclient_file));
+#else
 		ZEND_REGISTER_RESOURCE(return_value, handle, le_libsmbclient_file);
+#endif
 		return;
 	}
 	hide_password(file, file_len);
@@ -1168,8 +1271,8 @@ PHP_FUNCTION(smbclient_open)
 PHP_FUNCTION(smbclient_creat)
 {
 	char *file;
-	int file_len;
-	long mode = 0666;
+	strsize_t file_len;
+	zend_long mode = 0666;
 	zval *zstate;
 	SMBCFILE *handle;
 	smbc_creat_fn smbc_creat;
@@ -1184,7 +1287,12 @@ PHP_FUNCTION(smbclient_creat)
 		RETURN_FALSE;
 	}
 	if ((handle = smbc_creat(state->ctx, file, (mode_t)mode)) != NULL) {
+#if PHP_MAJOR_VERSION >= 7
+		ZVAL_RES(return_value, zend_register_resource(handle, le_libsmbclient_file));
+#else
 		ZEND_REGISTER_RESOURCE(return_value, handle, le_libsmbclient_file);
+#endif
+
 		return;
 	}
 	hide_password(file, file_len);
@@ -1203,8 +1311,7 @@ PHP_FUNCTION(smbclient_creat)
 
 PHP_FUNCTION(smbclient_read)
 {
-	long count;
-	ssize_t nbytes;
+	zend_long count;
 	zval *zstate;
 	zval *zfile;
 	SMBCFILE *file;
@@ -1224,10 +1331,18 @@ PHP_FUNCTION(smbclient_read)
 	if ((smbc_read = smbc_getFunctionRead(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
+#if PHP_MAJOR_VERSION >= 7
+	zend_string *buf = zend_string_alloc(count, 0);
+
+	if ((ZSTR_LEN(buf) = smbc_read(state->ctx, file, ZSTR_VAL(buf), count)) >= 0) {
+		RETURN_STR(buf);
+#else
 	void *buf = emalloc(count);
+	ssize_t nbytes;
 
 	if ((nbytes = smbc_read(state->ctx, file, buf, count)) >= 0) {
 		RETURN_STRINGL(buf, nbytes, 0);
+#endif
 	}
 	efree(buf);
 	switch (state->err = errno) {
@@ -1241,8 +1356,8 @@ PHP_FUNCTION(smbclient_read)
 
 PHP_FUNCTION(smbclient_write)
 {
-	long count = 0;
-	int str_len;
+	zend_long count = 0;
+	strsize_t str_len;
 	char * str;
 	size_t nwrite;
 	ssize_t nbytes;
@@ -1286,7 +1401,7 @@ PHP_FUNCTION(smbclient_write)
 
 PHP_FUNCTION(smbclient_lseek)
 {
-	long offset, whence, ret;
+	zend_long offset, whence, ret;
 	zval *zstate;
 	zval *zfile;
 	SMBCFILE *file;
@@ -1319,7 +1434,7 @@ PHP_FUNCTION(smbclient_lseek)
 
 PHP_FUNCTION(smbclient_ftruncate)
 {
-	long offset;
+	zend_long offset;
 	zval *zstate;
 	zval *zfile;
 	SMBCFILE *file;
@@ -1366,7 +1481,11 @@ PHP_FUNCTION(smbclient_close)
 		RETURN_FALSE;
 	}
 	if (smbc_close(state->ctx, file) == 0) {
+#if PHP_MAJOR_VERSION >= 7
+		zend_list_close(Z_RES_P(zfile));
+#else
 		zend_list_delete(Z_LVAL_P(zfile));
+#endif
 		RETURN_TRUE;
 	}
 	switch (state->err = errno) {
@@ -1380,8 +1499,8 @@ PHP_FUNCTION(smbclient_close)
 PHP_FUNCTION(smbclient_chmod)
 {
 	char *file;
-	int file_len;
-	long mode;
+	strsize_t file_len;
+	zend_long mode;
 	zval *zstate;
 	smbc_chmod_fn smbc_chmod;
 	php_libsmbclient_state *state;
@@ -1410,8 +1529,8 @@ PHP_FUNCTION(smbclient_chmod)
 PHP_FUNCTION(smbclient_utimes)
 {
 	char *file;
-	int file_len;
-	long mtime = -1, atime = -1;
+	strsize_t file_len;
+	zend_long mtime = -1, atime = -1;
 	zval *zstate;
 	struct timeval times[2];
 	smbc_utimes_fn smbc_utimes;
@@ -1451,7 +1570,7 @@ PHP_FUNCTION(smbclient_utimes)
 PHP_FUNCTION(smbclient_listxattr)
 {
 	char *url, *s, *c;
-	int url_len;
+	strsize_t url_len;
 	char values[1000];
 	zval *zstate;
 	smbc_listxattr_fn smbc_listxattr;
@@ -1485,7 +1604,11 @@ PHP_FUNCTION(smbclient_listxattr)
 			if (s == c) {
 				break;
 			}
+#if PHP_MAJOR_VERSION >= 7
+			add_next_index_stringl(return_value, s, c - s);
+#else
 			add_next_index_stringl(return_value, s, c - s, 1);
+#endif
 			s = c + 1;
 		}
 		return;
@@ -1503,7 +1626,8 @@ PHP_FUNCTION(smbclient_listxattr)
 PHP_FUNCTION(smbclient_getxattr)
 {
 	char *url, *name;
-	int url_len, name_len, retsize;
+	strsize_t url_len, name_len;
+	int retsize;
 	char values[1000];
 	zval *zstate;
 	smbc_getxattr_fn smbc_getxattr;
@@ -1525,7 +1649,11 @@ PHP_FUNCTION(smbclient_getxattr)
 		if (retsize > sizeof(values)) {
 			retsize = sizeof(values);
 		}
+#if PHP_MAJOR_VERSION >= 7
+		RETURN_STRINGL(values, retsize);
+#else
 		RETURN_STRINGL(values, retsize, 1);
+#endif
 	}
 	hide_password(url, url_len);
 	switch (state->err = errno) {
@@ -1541,8 +1669,8 @@ PHP_FUNCTION(smbclient_getxattr)
 PHP_FUNCTION(smbclient_setxattr)
 {
 	char *url, *name, *val;
-	int url_len, name_len, val_len;
-	long flags = 0;
+	strsize_t url_len, name_len, val_len;
+	zend_long flags = 0;
 	zval *zstate;
 	smbc_setxattr_fn smbc_setxattr;
 	php_libsmbclient_state *state;
@@ -1574,7 +1702,7 @@ PHP_FUNCTION(smbclient_setxattr)
 PHP_FUNCTION(smbclient_removexattr)
 {
 	char *url, *name;
-	int url_len, name_len;
+	strsize_t url_len, name_len;
 	zval *zstate;
 	smbc_removexattr_fn smbc_removexattr;
 	php_libsmbclient_state *state;
@@ -1603,7 +1731,7 @@ PHP_FUNCTION(smbclient_removexattr)
 
 PHP_FUNCTION(smbclient_option_get)
 {
-	long option;
+	zend_long option;
 	char *ret;
 	zval *zstate;
 	php_libsmbclient_state *state;
@@ -1663,7 +1791,11 @@ PHP_FUNCTION(smbclient_option_get)
 		if (strlen(ret) == 0) {
 			RETURN_EMPTY_STRING();
 		}
+#if PHP_MAJOR_VERSION >= 7
+		RETURN_STRING(ret);
+#else
 		RETURN_STRING(ret, 1);
+#endif
 
 	case SMBCLIENT_OPT_WORKGROUP:
 		if ((ret = smbc_getWorkgroup(state->ctx)) == NULL) {
@@ -1672,8 +1804,11 @@ PHP_FUNCTION(smbclient_option_get)
 		if (strlen(ret) == 0) {
 			RETURN_EMPTY_STRING();
 		}
+#if PHP_MAJOR_VERSION >= 7
+		RETURN_STRING(ret);
+#else
 		RETURN_STRING(ret, 1);
-
+#endif
 	case SMBCLIENT_OPT_USER:
 		if ((ret = smbc_getUser(state->ctx)) == NULL) {
 			RETURN_EMPTY_STRING();
@@ -1681,14 +1816,19 @@ PHP_FUNCTION(smbclient_option_get)
 		if (strlen(ret) == 0) {
 			RETURN_EMPTY_STRING();
 		}
+#if PHP_MAJOR_VERSION >= 7
+		RETURN_STRING(ret);
+#else
 		RETURN_STRING(ret, 1);
+#endif
+
 	}
 	RETURN_NULL();
 }
 
 PHP_FUNCTION(smbclient_option_set)
 {
-	long option;
+	zend_long option, vbool = 0;
 	zval *zstate;
 	zval *zvalue;
 	php_libsmbclient_state *state;
@@ -1700,38 +1840,45 @@ PHP_FUNCTION(smbclient_option_set)
 
 	switch (Z_TYPE_P(zvalue))
 	{
+#if PHP_MAJOR_VERSION >= 7
+	case IS_TRUE:
+		vbool = 1;
+		/* no break, fallthrough */
+	case IS_FALSE:
+#else
 	case IS_BOOL:
-
+		vbool = Z_BVAL_P(zvalue);
+#endif
 		switch (option)
 		{
 		case SMBCLIENT_OPT_CASE_SENSITIVE:
-			smbc_setOptionCaseSensitive(state->ctx, Z_BVAL_P(zvalue));
+			smbc_setOptionCaseSensitive(state->ctx, vbool);
 			RETURN_TRUE;
 
 		case SMBCLIENT_OPT_URLENCODE_READDIR_ENTRIES:
-			smbc_setOptionUrlEncodeReaddirEntries(state->ctx, Z_BVAL_P(zvalue));
+			smbc_setOptionUrlEncodeReaddirEntries(state->ctx, vbool);
 			RETURN_TRUE;
 
 		case SMBCLIENT_OPT_USE_KERBEROS:
-			smbc_setOptionUseKerberos(state->ctx, Z_BVAL_P(zvalue));
+			smbc_setOptionUseKerberos(state->ctx, vbool);
 			RETURN_TRUE;
 
 		case SMBCLIENT_OPT_FALLBACK_AFTER_KERBEROS:
-			smbc_setOptionFallbackAfterKerberos(state->ctx, Z_BVAL_P(zvalue));
+			smbc_setOptionFallbackAfterKerberos(state->ctx, vbool);
 			RETURN_TRUE;
 
 		/* Reverse the sense of this option: */
 		case SMBCLIENT_OPT_AUTO_ANONYMOUS_LOGIN:
-			smbc_setOptionNoAutoAnonymousLogin(state->ctx, !(Z_BVAL_P(zvalue)));
+			smbc_setOptionNoAutoAnonymousLogin(state->ctx, !(vbool));
 			RETURN_TRUE;
 
 		case SMBCLIENT_OPT_USE_CCACHE:
-			smbc_setOptionUseCCache(state->ctx, Z_BVAL_P(zvalue));
+			smbc_setOptionUseCCache(state->ctx, vbool);
 			RETURN_TRUE;
 
 		#ifdef HAVE_SMBC_SETOPTIONUSENTHASH
 		case SMBCLIENT_OPT_USE_NT_HASH:
-			smbc_setOptionUseNTHash(state->ctx, Z_BVAL_P(zvalue));
+			smbc_setOptionUseNTHash(state->ctx, vbool);
 			RETURN_TRUE;
 		#endif
 		}
@@ -1796,7 +1943,7 @@ PHP_FUNCTION(smbclient_option_set)
 PHP_FUNCTION(smbclient_statvfs)
 {
 	char *url;
-	int url_len;
+	strsize_t url_len;
 	zval *zstate;
 	struct statvfs st;
 	smbc_statvfs_fn smbc_statvfs;
