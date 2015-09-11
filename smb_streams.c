@@ -54,7 +54,7 @@
 	php_smb_stream_data *self = (php_smb_stream_data *) stream->abstract;
 
 typedef struct _php_smb_stream_data {
-	php_libsmbclient_state *state;
+	php_smbclient_state    *state;
 	SMBCFILE               *handle;
 	/* pointers cache for multiple call */
 	smbc_read_fn            smbc_read;
@@ -81,7 +81,7 @@ static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 		}
 	}
 
-	php_libsmbclient_state_free(self->state TSRMLS_CC);
+	php_smbclient_state_free(self->state TSRMLS_CC);
 	efree(self);
 	stream->abstract = NULL;
 	return EOF;
@@ -195,7 +195,7 @@ php_stream_smb_opener(
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state    *state;
 	int                     smbflags;
 	long                    smbmode = 0666;
 	smbc_open_fn            smbc_open;
@@ -203,7 +203,7 @@ php_stream_smb_opener(
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return NULL;
 	}
@@ -214,15 +214,15 @@ php_stream_smb_opener(
 		mode = "r";
 	}
 	if (flagstring_to_smbflags(mode, strlen(mode), &smbflags TSRMLS_CC) == 0) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	if ((handle = smbc_open(state->ctx, path, smbflags, smbmode)) == NULL) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	self = ecalloc(sizeof(*self), 1);
@@ -244,11 +244,11 @@ php_stream_smb_unlink(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state *state;
 	smbc_unlink_fn smbc_unlink;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -257,17 +257,17 @@ php_stream_smb_unlink(
 		if (options & REPORT_ERRORS) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink not supported");
 		}
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_unlink(state->ctx, url) == 0) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	if (options & REPORT_ERRORS) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink fails: %s", strerror(errno));
 	}
-	php_libsmbclient_state_free(state TSRMLS_CC);
+	php_smbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -284,7 +284,7 @@ php_stream_smb_mkdir(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state *state;
 	smbc_mkdir_fn smbc_mkdir;
 
 	if (options & PHP_STREAM_MKDIR_RECURSIVE) {
@@ -292,22 +292,22 @@ php_stream_smb_mkdir(
 		return 0;
 	}
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	/* Mkdir */
 	if ((smbc_mkdir = smbc_getFunctionMkdir(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir not supported");
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_mkdir(state->ctx, url, (mode_t)mode) == 0) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir fails: %s", strerror(errno));
-	php_libsmbclient_state_free(state TSRMLS_CC);
+	php_smbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -323,26 +323,26 @@ php_stream_smb_rmdir(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state *state;
 	smbc_rmdir_fn smbc_rmdir;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	/* Rmdir */
 	if ((smbc_rmdir = smbc_getFunctionRmdir(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir not supported");
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_rmdir(state->ctx, url) == 0) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir fails: %s", strerror(errno));
-	php_libsmbclient_state_free(state TSRMLS_CC);
+	php_smbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -360,25 +360,25 @@ php_stream_smb_rename(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state *state;
 	smbc_rename_fn smbc_rename;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	if ((smbc_rename = smbc_getFunctionRename(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rename not supported");
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_rename(state->ctx, url_from, state->ctx, url_to) == 0) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rename fails: %s", strerror(errno));
-	php_libsmbclient_state_free(state TSRMLS_CC);
+	php_smbclient_state_free(state TSRMLS_CC);
 	return 0;
 }
 
@@ -396,7 +396,7 @@ static int php_smbdir_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 			self->handle = NULL;
 		}
 	}
-	php_libsmbclient_state_free(self->state TSRMLS_CC);
+	php_smbclient_state_free(self->state TSRMLS_CC);
 	efree(self);
 	stream->abstract = NULL;
 	return EOF;
@@ -459,23 +459,23 @@ php_stream_smbdir_opener(
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state *state;
 	smbc_opendir_fn         smbc_opendir;
 	SMBCFILE               *handle;
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return NULL;
 	}
 	/* Directory */
 	if ((smbc_opendir = smbc_getFunctionOpendir(state->ctx)) == NULL) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	if ((handle = smbc_opendir(state->ctx, path)) == NULL) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return NULL;
 	}
 	self = ecalloc(sizeof(*self), 1);
@@ -498,26 +498,26 @@ php_stream_smb_stat(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state *state;
 	smbc_stat_fn smbc_stat;
 
 	/* Context */
-	state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	/* Stat */
 	if ((smbc_stat = smbc_getFunctionStat(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Stat not supported");
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return -1;
 	}
 	if (smbc_stat(state->ctx, url, &ssb->sb) >= 0) {
-		php_libsmbclient_state_free(state TSRMLS_CC);
+		php_smbclient_state_free(state TSRMLS_CC);
 		return 0;
 	}
 	/* dont display error as PHP use this method internally to check if file exists */
-	php_libsmbclient_state_free(state TSRMLS_CC);
+	php_smbclient_state_free(state TSRMLS_CC);
 	return -1;
 }
 
@@ -535,7 +535,7 @@ php_stream_smb_metadata(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_libsmbclient_state *state;
+	php_smbclient_state    *state;
 	smbc_chmod_fn           smbc_chmod;
 	smbc_open_fn            smbc_open;
 	smbc_utimes_fn          smbc_utimes;
@@ -551,7 +551,7 @@ php_stream_smb_metadata(
 			newtime = (struct utimbuf *)value;
 
 			/* Context */
-			state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+			state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 			if (!state) {
 				return 0;
 			}
@@ -580,7 +580,7 @@ php_stream_smb_metadata(
 		case PHP_STREAM_META_ACCESS:
 			mode = (mode_t)*(long *)value;
 			/* Context */
-			state = php_libsmbclient_state_new(context, 1 TSRMLS_CC);
+			state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 			if (!state) {
 				return 0;
 			}
@@ -596,7 +596,7 @@ php_stream_smb_metadata(
 			php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Unknown option %d for stream_metadata", option);
 			return 0;
 	}
-	php_libsmbclient_state_free(state TSRMLS_CC);
+	php_smbclient_state_free(state TSRMLS_CC);
 	if (ret == -1) {
 		php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Operation failed: %s", strerror(errno));
 		return 0;
