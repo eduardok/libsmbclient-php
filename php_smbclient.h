@@ -38,20 +38,20 @@
  * ------------------------------------------------------------------
  */
 
-#ifndef PHP_LIBSMBCLIENT_H
-#define PHP_LIBSMBCLIENT_H
+#ifndef PHP_SMBCLIENT_H
+#define PHP_SMBCLIENT_H
 
 #include <libsmbclient.h>
 
-#define LIBSMBCLIENT_VERSION "0.8.0-dev"
+#define PHP_SMBCLIENT_VERSION "0.8.0-dev"
 
-extern zend_module_entry libsmbclient_module_entry;
-#define phpext_libsmbclient_ptr &libsmbclient_module_entry
+extern zend_module_entry smbclient_module_entry;
+#define phpext_smbclient_ptr &smbclient_module_entry
 
 typedef struct {
-} php_libsmbclient_globals;
+} php_smbclient_globals;
 
-typedef struct _php_libsmbclient_state
+typedef struct _php_smbclient_state
 {
 	SMBCCTX *ctx;
 	char *wrkg;
@@ -62,7 +62,7 @@ typedef struct _php_libsmbclient_state
 	int passlen;
 	int err;
 }
-php_libsmbclient_state;
+php_smbclient_state;
 
 PHP_MINIT_FUNCTION(smbclient);
 PHP_MSHUTDOWN_FUNCTION(smbclient);
@@ -102,19 +102,19 @@ PHP_FUNCTION(smbclient_statvfs);
 PHP_FUNCTION(smbclient_fstatvfs);
 
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own private
- * php_libsmbclient_globals structure, the elements of which it can access
- * through the LIBSMBCLIENT() macro. Without ZTS, there is just one master
+ * php_smbclient_globals structure, the elements of which it can access
+ * through the SMBCLIENT() macro. Without ZTS, there is just one master
  * structure in which we access the members directly: */
 #ifdef ZTS
-#define LIBSMBCLIENT(v) TSRMG(libsmbclient_globals_id, php_libsmbclient_globals *, v)
+#define SMBCLIENT_G(v) TSRMG(smbclient_globals_id, php_smbclient_globals *, v)
 #else
-#define LIBSMBCLIENT(v) (libsmbclient_globals.v)
+#define SMBCLIENT_G(v) (smbclient_globals.v)
 #endif
 
 php_stream_wrapper php_stream_smb_wrapper;
-php_libsmbclient_state * php_libsmbclient_state_new  (php_stream_context *context, int init TSRMLS_DC);
-void                     php_libsmbclient_state_free (php_libsmbclient_state *state TSRMLS_DC);
-int                      php_libsmbclient_state_init (php_libsmbclient_state *state TSRMLS_DC);
-int                      flagstring_to_smbflags (const char *flags, int flags_len, int *retval TSRMLS_DC);
+php_smbclient_state * php_smbclient_state_new  (php_stream_context *context, int init TSRMLS_DC);
+void                  php_smbclient_state_free (php_smbclient_state *state TSRMLS_DC);
+int                   php_smbclient_state_init (php_smbclient_state *state TSRMLS_DC);
+int                   flagstring_to_smbflags (const char *flags, int flags_len, int *retval TSRMLS_DC);
 
-#endif /* PHP_LIBSMBCLIENT_H */
+#endif /* PHP_SMBCLIENT_H */

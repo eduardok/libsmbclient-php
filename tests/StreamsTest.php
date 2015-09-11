@@ -194,4 +194,12 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$fi = new finfo(FILEINFO_MIME_TYPE);
 		$this->assertEquals('text/plain', $fi->file($this->readuri));
 	}
+
+	public function
+	testListShares ()
+	{
+		$smb = scandir('smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/');
+
+		$this->assertContains(SMB_SHARE, $smb, print_r($smb, true));
+	}
 }
