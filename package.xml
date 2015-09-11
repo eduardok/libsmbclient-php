@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://pear.php.net/dtd/package-2.0"
+         xmlns:tasks="http://pear.php.net/dtd/tasks-1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         packagerversion="1.8.0"
+         version="2.0"
+         xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+  <name>smbclient</name>
+  <channel>pecl.php.net</channel>
+  <summary>A PHP wrapper for libsmbclient</summary>
+  <description>smbclient is a PHP extension that uses Samba's libsmbclient library to provide
+  Samba related functions and 'smb' streams to PHP programs.</description>
+  <lead>
+    <name>Matthew Sachs</name>
+    <user>matthewg</user>
+    <email>matthewg@zevils.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Eduardo Bacchi Kienetz</name>
+    <user>eduardok</user>
+    <email>eduardo@kienetz.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Alfred Klomp</name>
+    <user>aklomp</user>
+    <email>git@alfredklomp.com</email>
+    <active>yes</active>
+  </lead>
+  <contributor>
+    <name>Remi Collet</name>
+    <user>remi</user>
+    <email>remi@php.net</email>
+    <active>yes</active>
+  </contributor>
+  <date>2015-09-11</date>
+  <time>18:37:00</time>
+  <version>
+    <release>0.8.0dev</release>
+    <api>0.8.0</api>
+  </version>
+  <stability>
+    <release>beta</release>
+    <api>stable</api>
+  </stability>
+  <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+  <notes>
+- initial PECL release
+- add 'smb' streams support
+- rename extension to smbclient
+- PHP 7 compatibility
+  </notes>
+  <contents>
+    <dir name="/">
+      <!-- sources -->
+      <file name="config.m4" role="src"/>
+      <file name="php_smbclient.h" role="src"/>
+      <file name="smbclient.c" role="src"/>
+      <file name="smb_streams.c" role="src"/>
+      <!-- documentation -->
+      <file name="LICENSE" role="doc"/>
+      <file name="README.md" role="doc"/>
+      <!--- test suite -->
+      <file name="phpunit.xml.dist" role="test"/>
+      <dir name ="tests">
+        <file name="ClosedirTest.php" role="test"/>
+        <file name="CreateTest.php" role="test"/>
+        <file name="GetxattrTest.php" role="test"/>
+        <file name="LseekTest.php" role="test"/>
+        <file name="OpendirTest.php" role="test"/>
+        <file name="OptionsTest.php" role="test"/>
+        <file name="ReaddirTest.php" role="test"/>
+        <file name="RenameTest.php" role="test"/>
+        <file name="setup-share.sh" role="test"/>
+        <file name="StateFreeTest.php" role="test"/>
+        <file name="StateInitTest.php" role="test"/>
+        <file name="StateNewTest.php" role="test"/>
+        <file name="StreamsTest.php" role="test"/>
+        <file name="VersionTest.php" role="test"/>
+        <file name="VfsTest.php" role="test"/>
+        <file name="WriteTest.php" role="test"/>
+      </dir><!-- tests -->
+    </dir>
+  </contents>
+  <dependencies>
+    <required>
+      <php>
+        <min>5.3.0</min>
+      </php>
+      <pearinstaller>
+        <min>1.9.5</min>
+      </pearinstaller>
+    </required>
+  </dependencies>
+  <providesextension>smbclient</providesextension>
+  <extsrcrelease/>
+</package>
