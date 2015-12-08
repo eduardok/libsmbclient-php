@@ -52,3 +52,6 @@ missing
 mkinstalldirs
 modules
 run-tests.php
+
+# pecl archive
+smbclient-*.tgz
