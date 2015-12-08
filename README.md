@@ -9,6 +9,22 @@ to provide Samba related functions to PHP programs.
 Getting started
 ---------------
 
+### Installation from PECL
+
+```sh
+pecl install smbclient
+```
+
+
+### Binary package installation
+
+Some distribution provide binary package:
+
+* RPM for Fedora / RHEL / CentOS: [php-smbclient](https://apps.fedoraproject.org/packages/php-smbclient)
+
+
+### Installation from sources
+
 - Download a [release tarball](https://github.com/eduardok/libsmbclient-php/releases) or check out the source code using git:
 
 ```sh
