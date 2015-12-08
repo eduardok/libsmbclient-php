@@ -11,22 +11,10 @@
   <description>smbclient is a PHP extension that uses Samba's libsmbclient library to provide
   Samba related functions and 'smb' streams to PHP programs.</description>
   <lead>
-    <name>Matthew Sachs</name>
-    <user>matthewg</user>
-    <email>matthewg@zevils.com</email>
-    <active>no</active>
-  </lead>
-  <lead>
     <name>Eduardo Bacchi Kienetz</name>
     <user>eduardo</user>
     <email>eduardo@kienetz.com</email>
     <active>yes</active>
-  </lead>
-  <lead>
-    <name>Alfred Klomp</name>
-    <user>aklomp</user>
-    <email>git@alfredklomp.com</email>
-    <active>no</active>
   </lead>
   <contributor>
     <name>Remi Collet</name>
