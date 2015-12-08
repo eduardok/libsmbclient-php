@@ -14,11 +14,11 @@
     <name>Matthew Sachs</name>
     <user>matthewg</user>
     <email>matthewg@zevils.com</email>
-    <active>yes</active>
+    <active>no</active>
   </lead>
   <lead>
     <name>Eduardo Bacchi Kienetz</name>
-    <user>eduardok</user>
+    <user>eduardo</user>
     <email>eduardo@kienetz.com</email>
     <active>yes</active>
   </lead>
@@ -26,7 +26,7 @@
     <name>Alfred Klomp</name>
     <user>aklomp</user>
     <email>git@alfredklomp.com</email>
-    <active>yes</active>
+    <active>no</active>
   </lead>
   <contributor>
     <name>Remi Collet</name>
@@ -34,10 +34,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2015-09-11</date>
-  <time>18:37:00</time>
+  <date>2015-12-08</date>
+  <time>12:00:00</time>
   <version>
-    <release>0.8.0dev</release>
+    <release>0.8.0RC1</release>
     <api>0.8.0</api>
   </version>
   <stability>
