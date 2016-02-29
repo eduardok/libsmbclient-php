@@ -43,7 +43,7 @@
 
 #include <libsmbclient.h>
 
-#define PHP_SMBCLIENT_VERSION "0.8.0RC1"
+#define PHP_SMBCLIENT_VERSION "0.8.0"
 
 extern zend_module_entry smbclient_module_entry;
 #define phpext_smbclient_ptr &smbclient_module_entry
