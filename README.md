@@ -21,6 +21,8 @@ pecl install smbclient
 Some distribution provide binary package:
 
 * RPM for Fedora / RHEL / CentOS: [php-smbclient](https://apps.fedoraproject.org/packages/php-smbclient)
+* DEB for Debian: [php-smbclient](https://packages.debian.org/search?keywords=php-smbclient)
+* DEB for Ubuntu: [php-smbclient](http://packages.ubuntu.com/search?keywords=php-smbclient)
 
 
 ### Installation from sources
