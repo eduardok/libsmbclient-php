@@ -18,7 +18,7 @@ pecl install smbclient
 
 ### Binary package installation
 
-Some distribution provide binary package:
+Some distributions provide binary packages:
 
 * RPM for Fedora / RHEL / CentOS: [php-smbclient](https://apps.fedoraproject.org/packages/php-smbclient)
 * DEB for Debian: [php-smbclient](https://packages.debian.org/search?keywords=php-smbclient)
@@ -46,7 +46,7 @@ cd libsmbclient-php ; phpize
 make
 ```
 
-- As root install the module into the extensions directory:
+- As root, install the module into the extensions directory:
 
 ```sh
 sudo make install
@@ -67,10 +67,8 @@ extension="smbclient.so"
 Contributions and bug reports
 -----------------------------
 
-If you encounter a bug or want to contribute, please file an [issue](https://github.com/eduardok/libsmbclient-php/issues) at GitHub.
+If you encounter a bug or want to contribute, please file an [issue](https://github.com/eduardok/libsmbclient-php/issues) on GitHub.
 Sending pull requests on GitHub is the preferred method of contributing code, because Travis CI will automatically build and test your pull request.
-
-There is also a defunct [mailing list](http://groups.google.com/group/libsmbclient-php).
 
 ## License
 
@@ -497,7 +495,7 @@ int smbclient_write ( resource $state, resource $file, string $data [, int $leng
 
 Writes data to a file resource obtained through `smbclient_open` or `smbclient_creat`.
 If `$length` is not specified, write the whole contents of `$data`.
-If `$length` is specified, write either the whole contents of `$data` or `$length` bytes, whichever is less.
+If `$length` is specified, write either the whole content of `$data` or `$length` bytes, whichever is less.
 `$length`, if specified, must be larger than 0.
 If you want to write zero bytes for some reason, write the empty string and omit `$length`.
 
