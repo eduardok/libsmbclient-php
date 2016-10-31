@@ -64,15 +64,6 @@ typedef struct _php_smb_stream_data {
 	smbc_lseek_fn           smbc_lseek;
 } php_smb_stream_data;
 
-struct _php_smb_pool {
-	unsigned char          hash[20];
-	php_smbclient_state    *state;
-	struct _php_smb_pool   *next;
-	int                    nb;
-};
-
-struct _php_smb_pool *first = NULL;
-
 
 static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const char *url TSRMLS_DC)
 {
@@ -129,7 +120,7 @@ static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const 
 	PHP_SHA1Final(hash, &sha1);
 
 	/* Reuse state from pool if exists */
-	for (pool=first; pool ; pool=pool->next) {
+	for (pool=SMBCLIENT_G(pool_first); pool ; pool=pool->next) {
 		if (!memcmp(hash, pool->hash, 20)) {
 			pool->nb++;
 			return pool->state;
@@ -140,9 +131,9 @@ static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const 
 	pool = emalloc(sizeof(*pool));
 	memcpy(pool->hash, hash, 20);
 	pool->nb    = 1;
-	pool->next  = first;
+	pool->next  = SMBCLIENT_G(pool_first);
 	pool->state = php_smbclient_state_new(context, 1 TSRMLS_CC);
-	first = pool;
+	SMBCLIENT_G(pool_first) = pool;
 
 	return pool->state;
 }
@@ -151,7 +142,7 @@ static void php_smb_pool_drop(php_smbclient_state *state TSRMLS_DC)
 {
 	struct _php_smb_pool *pool;
 
-	for (pool=first; pool; pool=pool->next) {
+	for (pool=SMBCLIENT_G(pool_first); pool; pool=pool->next) {
 		if (pool->state==state) {
 			pool->nb--;
 		}
@@ -161,13 +152,13 @@ static void php_smb_pool_drop(php_smbclient_state *state TSRMLS_DC)
 void php_smb_pool_cleanup(void) {
 	struct _php_smb_pool *pool;
 
-	pool = first;
+	pool = SMBCLIENT_G(pool_first);
 	while (pool) {
 		php_smbclient_state_free(pool->state TSRMLS_CC);
 		pool=pool->next;
 		efree(pool);
 	}
-	first = NULL;
+	SMBCLIENT_G(pool_first) = NULL;
 }
 
 static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
