@@ -311,7 +311,7 @@ zend_module_entry smbclient_module_entry =
 	, PHP_MINIT(smbclient)		/* module_startup_func   */
 	, PHP_MSHUTDOWN(smbclient)	/* module_shutdown_func  */
 	, PHP_RINIT(smbclient)		/* request_startup_func  */
-	, NULL				/* request_shutdown_func */
+	, PHP_RSHUTDOWN(smbclient)	/* request_shutdown_func */
 	, PHP_MINFO(smbclient)		/* info_func             */
 	, PHP_SMBCLIENT_VERSION		/* version               */
 	, STANDARD_MODULE_PROPERTIES
@@ -497,6 +497,12 @@ PHP_RINIT_FUNCTION(smbclient)
 
 PHP_MSHUTDOWN_FUNCTION(smbclient)
 {
+	return SUCCESS;
+}
+
+PHP_RSHUTDOWN_FUNCTION(smbclient)
+{
+	php_smb_pool_cleanup();
 	return SUCCESS;
 }
 
