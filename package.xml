@@ -25,16 +25,16 @@
   <date>2016-02-29</date>
   <time>12:00:00</time>
   <version>
-    <release>0.8.0</release>
+    <release>0.9.0dev</release>
     <api>0.8.0</api>
   </version>
   <stability>
-    <release>stable</release>
+    <release>beta</release>
     <api>stable</api>
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-- Promoting to stable after almost 3 months with no commits needed.
+- stream optimization: reuse previous connections (Remi)
   </notes>
   <contents>
     <dir name="/">
@@ -80,4 +80,39 @@
   </dependencies>
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
+  <changelog>
+    <release>
+      <date>2016-02-29</date>
+      <version>
+        <release>0.8.0dev</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+- Promoting to stable after almost 3 months with no commits needed.
+      </notes>
+    </release>
+    <release>
+     <date>2015-12-08</date>
+     <version>
+      <release>0.8.0RC1</release>
+      <api>0.8.0</api>
+     </version>
+     <stability>
+      <release>beta</release>
+      <api>stable</api>
+     </stability>
+     <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+     <notes>
+- initial PECL release
+- add &apos;smb&apos; streams support
+- rename extension to smbclient
+- PHP 7 compatibility
+     </notes>
+    </release>
+  </changelog>
 </package>
