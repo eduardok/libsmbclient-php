@@ -842,15 +842,15 @@ static char *
 type_to_string (unsigned int type)
 {
 	switch (type) {
-		case SMBC_WORKGROUP	: return "workgroup";
-		case SMBC_SERVER	: return "server";
-		case SMBC_FILE_SHARE	: return "file share";
-		case SMBC_PRINTER_SHARE	: return "printer share";
-		case SMBC_COMMS_SHARE	: return "communication share";
-		case SMBC_IPC_SHARE	: return "IPC share";
-		case SMBC_DIR		: return "directory";
-		case SMBC_FILE		: return "file";
-		case SMBC_LINK		: return "link";
+		case SMBC_WORKGROUP: return "workgroup";
+		case SMBC_SERVER: return "server";
+		case SMBC_FILE_SHARE: return "file share";
+		case SMBC_PRINTER_SHARE: return "printer share";
+		case SMBC_COMMS_SHARE: return "communication share";
+		case SMBC_IPC_SHARE: return "IPC share";
+		case SMBC_DIR: return "directory";
+		case SMBC_FILE: return "file";
+		case SMBC_LINK: return "link";
 	}
 	return "unknown";
 }

@@ -55,20 +55,20 @@
 	php_smb_stream_data *self = (php_smb_stream_data *) stream->abstract;
 
 typedef struct _php_smb_stream_data {
-	php_smbclient_state    *state;
-	SMBCFILE               *handle;
+	php_smbclient_state *state;
+	SMBCFILE *handle;
 	/* pointers cache for multiple call */
-	smbc_read_fn            smbc_read;
-	smbc_readdir_fn         smbc_readdir;
-	smbc_write_fn           smbc_write;
-	smbc_lseek_fn           smbc_lseek;
+	smbc_read_fn smbc_read;
+	smbc_readdir_fn smbc_readdir;
+	smbc_write_fn smbc_write;
+	smbc_lseek_fn smbc_lseek;
 } php_smb_stream_data;
 
 
 static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const char *url TSRMLS_DC)
 {
-	PHP_SHA1_CTX          sha1;
-	unsigned char         hash[20];
+	PHP_SHA1_CTX sha1;
+	unsigned char hash[20];
 	struct _php_smb_pool *pool;
 
 	/* Create a hash for connection parameter */
@@ -120,7 +120,7 @@ static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const 
 	PHP_SHA1Final(hash, &sha1);
 
 	/* Reuse state from pool if exists */
-	for (pool=SMBCLIENT_G(pool_first); pool ; pool=pool->next) {
+	for (pool = SMBCLIENT_G(pool_first); pool; pool = pool->next) {
 		if (!memcmp(hash, pool->hash, 20)) {
 			pool->nb++;
 			return pool->state;
@@ -130,8 +130,8 @@ static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const 
 	/* Crate a new state and save it in the pool */
 	pool = emalloc(sizeof(*pool));
 	memcpy(pool->hash, hash, 20);
-	pool->nb    = 1;
-	pool->next  = SMBCLIENT_G(pool_first);
+	pool->nb = 1;
+	pool->next = SMBCLIENT_G(pool_first);
 	pool->state = php_smbclient_state_new(context, 1 TSRMLS_CC);
 	SMBCLIENT_G(pool_first) = pool;
 
@@ -142,8 +142,8 @@ static void php_smb_pool_drop(php_smbclient_state *state TSRMLS_DC)
 {
 	struct _php_smb_pool *pool;
 
-	for (pool=SMBCLIENT_G(pool_first); pool; pool=pool->next) {
-		if (pool->state==state) {
+	for (pool = SMBCLIENT_G(pool_first); pool; pool = pool->next) {
+		if (pool->state == state) {
 			pool->nb--;
 		}
 	}
@@ -155,7 +155,7 @@ void php_smb_pool_cleanup(void) {
 	pool = SMBCLIENT_G(pool_first);
 	while (pool) {
 		php_smbclient_state_free(pool->state TSRMLS_CC);
-		pool=pool->next;
+		pool = pool->next;
 		efree(pool);
 	}
 	SMBCLIENT_G(pool_first) = NULL;
@@ -293,12 +293,12 @@ php_stream_smb_opener(
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {
-	php_smbclient_state    *state;
-	int                     smbflags;
-	long                    smbmode = 0666;
-	smbc_open_fn            smbc_open;
-	SMBCFILE               *handle;
-	php_smb_stream_data    *self;
+	php_smbclient_state *state;
+	int smbflags;
+	long smbmode = 0666;
+	smbc_open_fn smbc_open;
+	SMBCFILE *handle;
+	php_smb_stream_data *self;
 
 	/* Context */
 	state = php_smb_pool_get(context, path TSRMLS_CC);
@@ -324,7 +324,7 @@ php_stream_smb_opener(
 		return NULL;
 	}
 	self = ecalloc(sizeof(*self), 1);
-	self->state  = state;
+	self->state = state;
 	self->handle = handle;
 
 	return php_stream_alloc(&php_stream_smbio_ops, self, NULL, mode);
@@ -558,9 +558,9 @@ php_stream_smbdir_opener(
 	STREAMS_DC TSRMLS_DC)
 {
 	php_smbclient_state *state;
-	smbc_opendir_fn         smbc_opendir;
-	SMBCFILE               *handle;
-	php_smb_stream_data    *self;
+	smbc_opendir_fn smbc_opendir;
+	SMBCFILE *handle;
+	php_smb_stream_data *self;
 
 	/* Context */
 	state = php_smb_pool_get(context, path TSRMLS_CC);
@@ -633,16 +633,16 @@ php_stream_smb_metadata(
 	php_stream_context *context
 	TSRMLS_DC)
 {
-	php_smbclient_state    *state;
-	smbc_chmod_fn           smbc_chmod;
-	smbc_open_fn            smbc_open;
-	smbc_utimes_fn          smbc_utimes;
-	smbc_close_fn           smbc_close;
-	mode_t                  mode;
-	struct utimbuf         *newtime;
-	struct timeval          times[2];
-	SMBCFILE               *handle;
-	int                     ret = 0;
+	php_smbclient_state *state;
+	smbc_chmod_fn smbc_chmod;
+	smbc_open_fn smbc_open;
+	smbc_utimes_fn smbc_utimes;
+	smbc_close_fn smbc_close;
+	mode_t mode;
+	struct utimbuf *newtime;
+	struct timeval times[2];
+	SMBCFILE *handle;
+	int ret = 0;
 
 	switch(option) {
 		case PHP_STREAM_META_TOUCH:
