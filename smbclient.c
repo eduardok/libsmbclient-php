@@ -48,19 +48,7 @@
 #include "ext/standard/info.h"
 #include "php_smbclient.h"
 
-/* If Zend Thread Safety (ZTS) is defined, each thread gets its own copy of
- * the php_smbclient_globals structure. Else we use a single global copy: */
-#ifdef ZTS
-static int smbclient_globals_id;
-#else
-static php_smbclient_globals smbclient_globals;
-#endif
-
-static void php_smbclient_init_globals(php_smbclient_globals *smbclient_globals_p TSRMLS_DC)
-{
-	/* This function initializes the thread-local storage.
-	 * We currently don't use this. */
-}
+ZEND_DECLARE_MODULE_GLOBALS(smbclient)
 
 #define PHP_SMBCLIENT_STATE_NAME "smbclient state"
 #define PHP_SMBCLIENT_FILE_NAME "smbclient file"
@@ -311,10 +299,14 @@ zend_module_entry smbclient_module_entry =
 	, PHP_MINIT(smbclient)		/* module_startup_func   */
 	, PHP_MSHUTDOWN(smbclient)	/* module_shutdown_func  */
 	, PHP_RINIT(smbclient)		/* request_startup_func  */
-	, NULL				/* request_shutdown_func */
+	, PHP_RSHUTDOWN(smbclient)	/* request_shutdown_func */
 	, PHP_MINFO(smbclient)		/* info_func             */
 	, PHP_SMBCLIENT_VERSION		/* version               */
-	, STANDARD_MODULE_PROPERTIES
+	, PHP_MODULE_GLOBALS(smbclient)
+	, PHP_GINIT(smbclient)		/* globals ctor */
+	, NULL						/* globals dtor */
+	, NULL						/* post_deactivate_func */
+	, STANDARD_MODULE_PROPERTIES_EX
 	} ;
 
 zend_module_entry old_module_entry = {
@@ -427,16 +419,13 @@ smbclient_file_dtor (
 	 * associated context is destroyed. */
 }
 
+PHP_GINIT_FUNCTION(smbclient)
+{
+	smbclient_globals->pool_first = NULL;
+}
+
 PHP_MINIT_FUNCTION(smbclient)
 {
-	/* If ZTS is defined, allocate and init a copy of the global
-	 * datastructure for each thread: */
-	#ifdef ZTS
-	ts_allocate_id(&smbclient_globals_id, sizeof(php_smbclient_globals), (ts_allocate_ctor) php_smbclient_init_globals, NULL);
-	#else
-	php_smbclient_init_globals(&smbclient_globals);
-	#endif
-
 	/* Constants for smbclient_setxattr: */
 	REGISTER_LONG_CONSTANT("SMBCLIENT_XATTR_CREATE", SMBC_XATTR_FLAG_CREATE, CONST_PERSISTENT | CONST_CS);
 	REGISTER_LONG_CONSTANT("SMBCLIENT_XATTR_REPLACE", SMBC_XATTR_FLAG_REPLACE, CONST_PERSISTENT | CONST_CS);
@@ -497,6 +486,12 @@ PHP_RINIT_FUNCTION(smbclient)
 
 PHP_MSHUTDOWN_FUNCTION(smbclient)
 {
+	return SUCCESS;
+}
+
+PHP_RSHUTDOWN_FUNCTION(smbclient)
+{
+	php_smb_pool_cleanup();
 	return SUCCESS;
 }
 

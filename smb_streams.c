@@ -46,6 +46,7 @@
 #include "ext/standard/url.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_filestat.h"
+#include "ext/standard/sha1.h"
 #include "php_smbclient.h"
 
 #include <libsmbclient.h>
@@ -62,6 +63,103 @@ typedef struct _php_smb_stream_data {
 	smbc_write_fn           smbc_write;
 	smbc_lseek_fn           smbc_lseek;
 } php_smb_stream_data;
+
+
+static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const char *url TSRMLS_DC)
+{
+	PHP_SHA1_CTX          sha1;
+	unsigned char         hash[20];
+	struct _php_smb_pool *pool;
+
+	/* Create a hash for connection parameter */
+	PHP_SHA1Init(&sha1);
+	if (!memcmp(url, "smb://", 6)) {
+		char *p;
+		p = strchr(url+6, '/'); // we only want smb://workgroup;user:pass@server/
+		PHP_SHA1Update(&sha1, (const unsigned char *)url+6, p ? p - url - 6 : strlen(url+6));
+	}
+	if (context) {
+#if PHP_MAJOR_VERSION >= 7
+		zval *tmpzval;
+
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "workgroup"))) {
+			if (Z_TYPE_P(tmpzval) == IS_STRING) {
+				PHP_SHA1Update(&sha1, (const unsigned char *)Z_STRVAL_P(tmpzval), Z_STRLEN_P(tmpzval)+1);
+			}
+		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "username"))) {
+			if (Z_TYPE_P(tmpzval) == IS_STRING) {
+				PHP_SHA1Update(&sha1, (const unsigned char *)Z_STRVAL_P(tmpzval), Z_STRLEN_P(tmpzval)+1);
+			}
+		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "password"))) {
+			if (Z_TYPE_P(tmpzval) == IS_STRING) {
+				PHP_SHA1Update(&sha1, (const unsigned char *)Z_STRVAL_P(tmpzval), Z_STRLEN_P(tmpzval)+1);
+			}
+		}
+#else
+		zval **tmpzval;
+
+		if (php_stream_context_get_option(context, "smb", "workgroup", &tmpzval) == SUCCESS) {
+			if (Z_TYPE_PP(tmpzval) == IS_STRING) {
+				PHP_SHA1Update(&sha1, (const unsigned char *)Z_STRVAL_PP(tmpzval), Z_STRLEN_PP(tmpzval)+1);
+			}
+		}
+		if (php_stream_context_get_option(context, "smb", "username", &tmpzval) == SUCCESS) {
+			if (Z_TYPE_PP(tmpzval) == IS_STRING) {
+				PHP_SHA1Update(&sha1, (const unsigned char *)Z_STRVAL_PP(tmpzval), Z_STRLEN_PP(tmpzval)+1);
+			}
+		}
+		if (php_stream_context_get_option(context, "smb", "password", &tmpzval) == SUCCESS) {
+			if (Z_TYPE_PP(tmpzval) == IS_STRING) {
+				PHP_SHA1Update(&sha1, (const unsigned char *)Z_STRVAL_PP(tmpzval), Z_STRLEN_PP(tmpzval)+1);
+			}
+		}
+#endif
+	}
+	PHP_SHA1Final(hash, &sha1);
+
+	/* Reuse state from pool if exists */
+	for (pool=SMBCLIENT_G(pool_first); pool ; pool=pool->next) {
+		if (!memcmp(hash, pool->hash, 20)) {
+			pool->nb++;
+			return pool->state;
+		}
+	}
+
+	/* Crate a new state and save it in the pool */
+	pool = emalloc(sizeof(*pool));
+	memcpy(pool->hash, hash, 20);
+	pool->nb    = 1;
+	pool->next  = SMBCLIENT_G(pool_first);
+	pool->state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	SMBCLIENT_G(pool_first) = pool;
+
+	return pool->state;
+}
+
+static void php_smb_pool_drop(php_smbclient_state *state TSRMLS_DC)
+{
+	struct _php_smb_pool *pool;
+
+	for (pool=SMBCLIENT_G(pool_first); pool; pool=pool->next) {
+		if (pool->state==state) {
+			pool->nb--;
+		}
+	}
+}
+
+void php_smb_pool_cleanup(void) {
+	struct _php_smb_pool *pool;
+
+	pool = SMBCLIENT_G(pool_first);
+	while (pool) {
+		php_smbclient_state_free(pool->state TSRMLS_CC);
+		pool=pool->next;
+		efree(pool);
+	}
+	SMBCLIENT_G(pool_first) = NULL;
+}
 
 static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 {
@@ -81,7 +179,7 @@ static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 		}
 	}
 
-	php_smbclient_state_free(self->state TSRMLS_CC);
+	php_smb_pool_drop(self->state TSRMLS_CC);
 	efree(self);
 	stream->abstract = NULL;
 	return EOF;
@@ -203,7 +301,7 @@ php_stream_smb_opener(
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, path TSRMLS_CC);
 	if (!state) {
 		return NULL;
 	}
@@ -214,15 +312,15 @@ php_stream_smb_opener(
 		mode = "r";
 	}
 	if (flagstring_to_smbflags(mode, strlen(mode), &smbflags TSRMLS_CC) == 0) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return NULL;
 	}
 	if ((smbc_open = smbc_getFunctionOpen(state->ctx)) == NULL) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return NULL;
 	}
 	if ((handle = smbc_open(state->ctx, path, smbflags, smbmode)) == NULL) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return NULL;
 	}
 	self = ecalloc(sizeof(*self), 1);
@@ -248,7 +346,7 @@ php_stream_smb_unlink(
 	smbc_unlink_fn smbc_unlink;
 
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, url TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
@@ -257,17 +355,17 @@ php_stream_smb_unlink(
 		if (options & REPORT_ERRORS) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink not supported");
 		}
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_unlink(state->ctx, url) == 0) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 1;
 	}
 	if (options & REPORT_ERRORS) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unlink fails: %s", strerror(errno));
 	}
-	php_smbclient_state_free(state TSRMLS_CC);
+	php_smb_pool_drop(state TSRMLS_CC);
 	return 0;
 }
 
@@ -292,22 +390,22 @@ php_stream_smb_mkdir(
 		return 0;
 	}
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, url TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	/* Mkdir */
 	if ((smbc_mkdir = smbc_getFunctionMkdir(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir not supported");
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_mkdir(state->ctx, url, (mode_t)mode) == 0) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Mkdir fails: %s", strerror(errno));
-	php_smbclient_state_free(state TSRMLS_CC);
+	php_smb_pool_drop(state TSRMLS_CC);
 	return 0;
 }
 
@@ -327,22 +425,22 @@ php_stream_smb_rmdir(
 	smbc_rmdir_fn smbc_rmdir;
 
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, url TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	/* Rmdir */
 	if ((smbc_rmdir = smbc_getFunctionRmdir(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir not supported");
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_rmdir(state->ctx, url) == 0) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rmdir fails: %s", strerror(errno));
-	php_smbclient_state_free(state TSRMLS_CC);
+	php_smb_pool_drop(state TSRMLS_CC);
 	return 0;
 }
 
@@ -364,21 +462,21 @@ php_stream_smb_rename(
 	smbc_rename_fn smbc_rename;
 
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, url_from TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	if ((smbc_rename = smbc_getFunctionRename(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rename not supported");
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 0;
 	}
 	if (smbc_rename(state->ctx, url_from, state->ctx, url_to) == 0) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 1;
 	}
 	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Rename fails: %s", strerror(errno));
-	php_smbclient_state_free(state TSRMLS_CC);
+	php_smb_pool_drop(state TSRMLS_CC);
 	return 0;
 }
 
@@ -396,7 +494,7 @@ static int php_smbdir_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 			self->handle = NULL;
 		}
 	}
-	php_smbclient_state_free(self->state TSRMLS_CC);
+	php_smb_pool_drop(self->state TSRMLS_CC);
 	efree(self);
 	stream->abstract = NULL;
 	return EOF;
@@ -465,17 +563,17 @@ php_stream_smbdir_opener(
 	php_smb_stream_data    *self;
 
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, path TSRMLS_CC);
 	if (!state) {
 		return NULL;
 	}
 	/* Directory */
 	if ((smbc_opendir = smbc_getFunctionOpendir(state->ctx)) == NULL) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return NULL;
 	}
 	if ((handle = smbc_opendir(state->ctx, path)) == NULL) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return NULL;
 	}
 	self = ecalloc(sizeof(*self), 1);
@@ -502,22 +600,22 @@ php_stream_smb_stat(
 	smbc_stat_fn smbc_stat;
 
 	/* Context */
-	state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+	state = php_smb_pool_get(context, url TSRMLS_CC);
 	if (!state) {
 		return 0;
 	}
 	/* Stat */
 	if ((smbc_stat = smbc_getFunctionStat(state->ctx)) == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Stat not supported");
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return -1;
 	}
 	if (smbc_stat(state->ctx, url, &ssb->sb) >= 0) {
-		php_smbclient_state_free(state TSRMLS_CC);
+		php_smb_pool_drop(state TSRMLS_CC);
 		return 0;
 	}
 	/* dont display error as PHP use this method internally to check if file exists */
-	php_smbclient_state_free(state TSRMLS_CC);
+	php_smb_pool_drop(state TSRMLS_CC);
 	return -1;
 }
 
@@ -551,7 +649,7 @@ php_stream_smb_metadata(
 			newtime = (struct utimbuf *)value;
 
 			/* Context */
-			state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+			state = php_smb_pool_get(context, url TSRMLS_CC);
 			if (!state) {
 				return 0;
 			}
@@ -580,7 +678,7 @@ php_stream_smb_metadata(
 		case PHP_STREAM_META_ACCESS:
 			mode = (mode_t)*(long *)value;
 			/* Context */
-			state = php_smbclient_state_new(context, 1 TSRMLS_CC);
+			state = php_smb_pool_get(context, url TSRMLS_CC);
 			if (!state) {
 				return 0;
 			}
@@ -596,7 +694,7 @@ php_stream_smb_metadata(
 			php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Unknown option %d for stream_metadata", option);
 			return 0;
 	}
-	php_smbclient_state_free(state TSRMLS_CC);
+	php_smb_pool_drop(state TSRMLS_CC);
 	if (ret == -1) {
 		php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Operation failed: %s", strerror(errno));
 		return 0;
