@@ -149,7 +149,7 @@ static void php_smb_pool_drop(php_smbclient_state *state TSRMLS_DC)
 	}
 }
 
-void php_smb_pool_cleanup(void) {
+void php_smb_pool_cleanup(TSRMLS_D) {
 	struct _php_smb_pool *pool;
 
 	pool = SMBCLIENT_G(pool_first);

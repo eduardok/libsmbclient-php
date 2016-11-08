@@ -133,6 +133,6 @@ php_smbclient_state * php_smbclient_state_new  (php_stream_context *context, int
 void                  php_smbclient_state_free (php_smbclient_state *state TSRMLS_DC);
 int                   php_smbclient_state_init (php_smbclient_state *state TSRMLS_DC);
 int                   flagstring_to_smbflags (const char *flags, int flags_len, int *retval TSRMLS_DC);
-void                  php_smb_pool_cleanup(void);
+void                  php_smb_pool_cleanup(TSRMLS_D);
 
 #endif /* PHP_SMBCLIENT_H */

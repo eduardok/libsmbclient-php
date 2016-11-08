@@ -491,7 +491,7 @@ PHP_MSHUTDOWN_FUNCTION(smbclient)
 
 PHP_RSHUTDOWN_FUNCTION(smbclient)
 {
-	php_smb_pool_cleanup();
+	php_smb_pool_cleanup(TSRMLS_C);
 	return SUCCESS;
 }
 
