@@ -93,7 +93,8 @@
       </stability>
       <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
       <notes>
-- Promoting to stable after 3 months, and just a small fix.
+- fix gh#47 Incorrect function definition for smbclient_read
+- optimization: enable stream wrapper reusing connections
       </notes>
     </release>
     <release>
