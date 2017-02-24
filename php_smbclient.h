@@ -128,7 +128,7 @@ PHP_FUNCTION(smbclient_fstatvfs);
 #endif
 #endif
 
-php_stream_wrapper php_stream_smb_wrapper;
+extern php_stream_wrapper php_stream_smb_wrapper;
 php_smbclient_state * php_smbclient_state_new  (php_stream_context *context, int init TSRMLS_DC);
 void                  php_smbclient_state_free (php_smbclient_state *state TSRMLS_DC);
 int                   php_smbclient_state_init (php_smbclient_state *state TSRMLS_DC);
