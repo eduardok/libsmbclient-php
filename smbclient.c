@@ -889,10 +889,7 @@ PHP_FUNCTION(smbclient_readdir)
 		}
 		RETURN_FALSE;
 	}
-	if (array_init(return_value) != SUCCESS) {
-		php_error(E_WARNING, "Couldn't initialize array");
-		RETURN_FALSE;
-	}
+	array_init(return_value);
 #if PHP_MAJOR_VERSION >= 7
 	add_assoc_string(return_value, "type", type_to_string(dirent->smbc_type));
 	add_assoc_stringl(return_value, "comment", dirent->comment, dirent->commentlen);
@@ -1108,10 +1105,7 @@ PHP_FUNCTION(smbclient_stat)
 		}
 		RETURN_FALSE;
 	}
-	if (array_init(return_value) != SUCCESS) {
-		php_error(E_WARNING, "Couldn't initialize array");
-		RETURN_FALSE;
-	}
+	array_init(return_value);
 	add_index_long(return_value, 0, statbuf.st_dev);
 	add_index_long(return_value, 1, statbuf.st_ino);
 	add_index_long(return_value, 2, statbuf.st_mode);
@@ -1170,10 +1164,7 @@ PHP_FUNCTION(smbclient_fstat)
 		}
 		RETURN_FALSE;
 	}
-	if (array_init(return_value) != SUCCESS) {
-		php_error(E_WARNING, "Couldn't initialize array");
-		RETURN_FALSE;
-	}
+	array_init(return_value);
 	add_index_long(return_value, 0, statbuf.st_dev);
 	add_index_long(return_value, 1, statbuf.st_ino);
 	add_index_long(return_value, 2, statbuf.st_mode);
@@ -1608,10 +1599,7 @@ PHP_FUNCTION(smbclient_listxattr)
 	 * Because this list is static, we can get away with using a fixed
 	 * buffer size.*/
 	if (smbc_listxattr(state->ctx, url, values, sizeof(values)) >= 0) {
-		if (array_init(return_value) != SUCCESS) {
-			php_error(E_WARNING, "Couldn't initialize array");
-			RETURN_FALSE;
-		}
+		array_init(return_value);
 		/* Each attribute is null-separated, the list itself terminates
 		 * with an empty element (i.e. two null bytes in a row). */
 		for (s = c = values; c < values + sizeof(values); c++) {
@@ -1986,10 +1974,7 @@ PHP_FUNCTION(smbclient_statvfs)
 		}
 		RETURN_FALSE;
 	}
-	if (array_init(return_value) != SUCCESS) {
-		php_error(E_WARNING, "Couldn't initialize array");
-		RETURN_FALSE;
-	}
+	array_init(return_value);
 	add_assoc_long(return_value, "bsize",   st.f_bsize);
 	add_assoc_long(return_value, "frsize",  st.f_frsize);
 	add_assoc_long(return_value, "blocks",  st.f_blocks);
@@ -2031,10 +2016,7 @@ PHP_FUNCTION(smbclient_fstatvfs)
 		}
 		RETURN_FALSE;
 	}
-	if (array_init(return_value) != SUCCESS) {
-		php_error(E_WARNING, "Couldn't initialize array");
-		RETURN_FALSE;
-	}
+	array_init(return_value);
 	add_assoc_long(return_value, "bsize",   st.f_bsize);
 	add_assoc_long(return_value, "frsize",  st.f_frsize);
 	add_assoc_long(return_value, "blocks",  st.f_blocks);
