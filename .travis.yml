@@ -33,5 +33,4 @@ script:
   - ./configure
   - make
   - sudo make install
-  - echo 'extension="smbclient.so"' | sudo tee -a /etc/php5/cli/php.ini
-  - php phpunit.phar --verbose
+  - php --define extension="smbclient.so" phpunit.phar --verbose
