@@ -32,6 +32,6 @@ script:
   - phpize
   - ./configure
   - make
-  - sudo make install INSTALL_ROOT=$(/usr/bin/php -i | grep -E '^extension_dir =>' | awk -F' => ' '{print $3}')
+  - sudo make install
   - echo 'extension="smbclient.so"' | sudo tee -a /etc/php5/cli/php.ini
-  - /usr/bin/php phpunit.phar --verbose
+  - php phpunit.phar --verbose
