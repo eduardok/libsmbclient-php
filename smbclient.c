@@ -1345,15 +1345,16 @@ PHP_FUNCTION(smbclient_read)
 
 	if ((ZSTR_LEN(buf) = smbc_read(state->ctx, file, ZSTR_VAL(buf), count)) >= 0) {
 		RETURN_STR(buf);
+		zend_string_release(buf);
 #else
 	void *buf = emalloc(count);
 	ssize_t nbytes;
 
 	if ((nbytes = smbc_read(state->ctx, file, buf, count)) >= 0) {
 		RETURN_STRINGL(buf, nbytes, 0);
+		efree(buf);
 #endif
 	}
-	efree(buf);
 	switch (state->err = errno) {
 		case EISDIR: php_error(E_WARNING, "Read error: Is a directory"); break;
 		case EBADF: php_error(E_WARNING, "Read error: Not a valid file resource or not open for reading"); break;
