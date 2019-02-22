@@ -28,12 +28,14 @@ config.cache
 config.guess
 config.h
 config.h.in
+config.h.in~
 config.log
 config.nice
 config.status
 config.sub
 configure
 configure.in
+configure.ac
 conftest
 conftest.c
 Makefile
