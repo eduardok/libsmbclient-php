@@ -1,4 +1,8 @@
-language: c
+language: php
+
+php:
+  - 7.2
+  - 7.4
 
 compiler:
   - clang
