@@ -285,11 +285,11 @@ If a given option is not available, this function will return `null` and not `fa
 ### smbclient_state_init
 
 ```php
-bool smbclient_state_init ( resource $state [, string $workgroup = null [, string $username = null [, string $password = null ] ] ] )
+int smbclient_state_init ( resource $state [, string $workgroup = null [, string $username = null [, string $password = null ] ] ] )
 ```
 
 Initialize the smbclient state resource.
-Returns `true` on success, `false` on failure.
+Returns `0` on success, `1` on failure.
 Before using the state resource in other functions, it must be initialized.
 Workgroup, username and password are optional parameters.
 You can specify any of them as `null` or `false` to indicate that the credential is not available.
