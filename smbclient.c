@@ -1636,10 +1636,12 @@ PHP_FUNCTION(smbclient_getxattr)
 	char *url, *name;
 	strsize_t url_len, name_len;
 	int retsize;
-	char values[1000];
+	int xattr_size;
 	zval *zstate;
 	smbc_getxattr_fn smbc_getxattr;
 	php_smbclient_state *state;
+	char *values = NULL;
+	ALLOCA_FLAG(use_heap)
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &url, &url_len, &name, &name_len) == FAILURE) {
 		return;
@@ -1649,20 +1651,28 @@ PHP_FUNCTION(smbclient_getxattr)
 	if ((smbc_getxattr = smbc_getFunctionGetxattr(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
-	/* TODO: 1000 chars should be enough for everyone...?
-	 * However, doing an initial blank call to determine the response size
-	 * seems wasteful, and vulnerable to a time-of-check, time-of-use
-	 * error. */
-	if ((retsize = smbc_getxattr(state->ctx, url, name, values, sizeof(values))) >= 0) {
-		if (retsize > sizeof(values)) {
-			retsize = sizeof(values);
-		}
-#if PHP_MAJOR_VERSION >= 7
-		RETURN_STRINGL(values, retsize);
-#else
-		RETURN_STRINGL(values, retsize, 1);
-#endif
+
+	xattr_size = smbc_getxattr(state->ctx, url, name, NULL, 0);
+
+	if(xattr_size < 0) {
+		goto fail;
 	}
+
+	if(xattr_size == 0) {
+		RETURN_EMPTY_STRING();
+	}
+
+	values = do_alloca(xattr_size + 1, use_heap);
+
+	retsize = smbc_getxattr(state->ctx, url, name, values, sizeof(values));
+
+	if(retsize < 0)
+		goto fail;
+
+	RETVAL_STRING(values);
+	free_alloca(values, use_heap);
+	return;
+fail:
 	hide_password(url, url_len);
 	switch (state->err = errno) {
 		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", url); break;
