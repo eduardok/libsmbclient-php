@@ -1636,7 +1636,6 @@ PHP_FUNCTION(smbclient_getxattr)
 	char *url, *name;
 	strsize_t url_len, name_len;
 	int retsize;
-	char values[1000];
 	zval *zstate;
 	smbc_getxattr_fn smbc_getxattr;
 	php_smbclient_state *state;
@@ -1649,20 +1648,32 @@ PHP_FUNCTION(smbclient_getxattr)
 	if ((smbc_getxattr = smbc_getFunctionGetxattr(state->ctx)) == NULL) {
 		RETURN_FALSE;
 	}
-	/* TODO: 1000 chars should be enough for everyone...?
-	 * However, doing an initial blank call to determine the response size
-	 * seems wasteful, and vulnerable to a time-of-check, time-of-use
-	 * error. */
-	if ((retsize = smbc_getxattr(state->ctx, url, name, values, sizeof(values))) >= 0) {
+	retsize = smbc_getxattr(state->ctx, url, name, NULL, 0);
+	if(retsize < 0)
+		goto fail;
+#if PHP_MAJOR_VERSION >= 7
+        zend_string *values = zend_string_alloc(retsize, 0);
+#else
+        void *values = emalloc(retsize);
+#endif
+
+	if ((retsize = smbc_getxattr(state->ctx, url, name, values, retsize)) >= 0) {
 		if (retsize > sizeof(values)) {
 			retsize = sizeof(values);
 		}
 #if PHP_MAJOR_VERSION >= 7
-		RETURN_STRINGL(values, retsize);
+		RETURN_STR(values);
 #else
 		RETURN_STRINGL(values, retsize, 1);
 #endif
 	}
+#if PHP_MAJOR_VERSION >= 7
+	zend_string_release(values);
+#else
+	efree(values);
+#endif
+
+fail:
 	hide_password(url, url_len);
 	switch (state->err = errno) {
 		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", url); break;
