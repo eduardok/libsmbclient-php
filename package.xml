@@ -22,7 +22,7 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2020-12-28</date>
+  <date>2020-12-29</date>
   <time>12:00:00</time>
   <version>
     <release>1.0.1</release>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-- stream optimization: reuse previous connections (Remi)
+-- Code fixes for PHP 7.4/8, and memory free, ReadTest added, Travis build updated, and smbclient_state_init documentation fixed.
   </notes>
   <contents>
     <dir name="/">
@@ -83,7 +83,7 @@
   <extsrcrelease/>
   <changelog>
      <release>
-      <date>2020-12-28</date>
+      <date>2020-12-29</date>
       <version>
         <release>1.0.1</release>
         <api>0.8.0</api>
