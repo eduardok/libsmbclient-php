@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2018-12-24</date>
+  <date>2020-12-28</date>
   <time>12:00:00</time>
   <version>
-    <release>1.0.0</release>
+    <release>1.0.1</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -56,6 +56,7 @@
         <file name="OpendirTest.php" role="test"/>
         <file name="OptionsTest.php" role="test"/>
         <file name="ReaddirTest.php" role="test"/>
+        <file name="ReadTest.php" role="test"/>
         <file name="RenameTest.php" role="test"/>
         <file name="setup-share.sh" role="test"/>
         <file name="StateFreeTest.php" role="test"/>
@@ -81,6 +82,24 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2020-12-28</date>
+      <version>
+        <release>1.0.1</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+          - Remi fixed code for PHP 7.4 and 8, and memory free.
+          - Remi added read test.
+          - Eduardo updated Travis build config.
+          - Peter fixed documentation for smbclient_state_init.
+      </notes>
+    </release>
     <release>
       <date>2018-12-24</date>
       <version>
