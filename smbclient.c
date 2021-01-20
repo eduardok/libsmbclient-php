@@ -173,6 +173,12 @@ ZEND_BEGIN_ARG_INFO(arginfo_smbclient_option_set, 0)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO(arginfo_smbclient_client_protocols, 0)
+	ZEND_ARG_INFO(0, state)
+	ZEND_ARG_INFO(0, minproto)
+	ZEND_ARG_INFO(0, maxproto)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO(arginfo_smbclient_path, 0)
 	ZEND_ARG_INFO(0, state)
 	ZEND_ARG_INFO(0, path)
@@ -267,6 +273,7 @@ static zend_function_entry smbclient_functions[] =
 	PHP_FE(smbclient_state_free, arginfo_smbclient_state)
 	PHP_FE(smbclient_option_get, arginfo_smbclient_option_get)
 	PHP_FE(smbclient_option_set, arginfo_smbclient_option_set)
+	PHP_FE(smbclient_client_protocols, arginfo_smbclient_client_protocols)
 	PHP_FE(smbclient_opendir, arginfo_smbclient_path)
 	PHP_FE(smbclient_readdir, arginfo_smbclient_dir)
 	PHP_FE(smbclient_closedir, arginfo_smbclient_dir)
@@ -1946,6 +1953,21 @@ PHP_FUNCTION(smbclient_option_set)
 		break;
 	}
 	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_client_protocols)
+{
+	zval *zstate;
+	char *minproto, *maxproto;
+	strsize_t minproto_len, maxproto_len;
+	php_smbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &minproto, &minproto_len, &maxproto, &maxproto_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	RETURN_BOOL(smbc_setOptionProtocols(state->ctx, minproto, maxproto));
 }
 
 PHP_FUNCTION(smbclient_statvfs)

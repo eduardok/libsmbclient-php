@@ -161,6 +161,15 @@ Before using the state resource in other functions, it must be initialized by ca
 Between creating and initializing the resource, you can set certain options for the connection with `smbclient_option_set`.
 The state resource should be released when you're done with it by passing it to `smbclient_state_free` (although PHP will auto-destroy it when it goes out of scope).
 
+### smbclient_client_protocols
+
+```php
+bool smbclient_client_protocols ( resource $state, string $min_protocol, string $max_protocol )
+```
+
+Sets the minimum and maximum protocols (client min protocol and client max protocol) for negotiation.
+Returns `true` on success, `false` on failure.
+
 ### smbclient_option_set
 
 ```php
