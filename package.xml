@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2020-12-29</date>
+  <date>2021-01-20</date>
   <time>12:00:00</time>
   <version>
-    <release>1.0.1</release>
+    <release>1.0.2</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
--- Code fixes for PHP 7.4/8, and memory free, ReadTest added, Travis build updated, and smbclient_state_init documentation fixed.
+--- Introduces smbclient_client_protocols() to set min and max protocol for negotiation.
   </notes>
   <contents>
     <dir name="/">
@@ -82,6 +82,21 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2021-01-20</date>
+      <version>
+        <release>1.0.2</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+          - Introduces smbclient_client_protocols, to enable setting client min/max protocol.
+      </notes>
+     </release>
      <release>
       <date>2020-12-29</date>
       <version>
