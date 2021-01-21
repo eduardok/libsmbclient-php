@@ -615,6 +615,12 @@ php_smbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 				return NULL;
 			}
 		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "minproto"))) {
+			smbc_setOptionProtocols(state->ctx, Z_STRVAL_P(tmpzval), NULL);
+		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "maxproto"))) {
+			smbc_setOptionProtocols(state->ctx, NULL, Z_STRVAL_P(tmpzval));
+		}
 #else
 		zval **tmpzval;
 
@@ -635,6 +641,12 @@ php_smbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 				php_smbclient_state_free(state TSRMLS_CC);
 				return NULL;
 			}
+		}
+		if (php_stream_context_get_option(context, "smb", "minproto", &tmpzval) == SUCCESS) {
+			smbc_setOptionProtocols(state->ctx, Z_STRVAL_PP(tmpzval), NULL);
+		}
+		if (php_stream_context_get_option(context, "smb", "maxproto", &tmpzval) == SUCCESS) {
+			smbc_setOptionProtocols(state->ctx, NULL, Z_STRVAL_PP(tmpzval));
 		}
 #endif
 	}
