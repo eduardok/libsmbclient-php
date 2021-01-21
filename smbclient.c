@@ -173,11 +173,13 @@ ZEND_BEGIN_ARG_INFO(arginfo_smbclient_option_set, 0)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
+#if HAVE_SMBC_SETOPTIONPROTOCOLS
 ZEND_BEGIN_ARG_INFO_EX(arginfo_smbclient_client_protocols, 0, 0, 1)
 	ZEND_ARG_INFO(0, state)
 	ZEND_ARG_INFO(0, minproto)
 	ZEND_ARG_INFO(0, maxproto)
 ZEND_END_ARG_INFO()
+#endif
 
 ZEND_BEGIN_ARG_INFO(arginfo_smbclient_path, 0)
 	ZEND_ARG_INFO(0, state)
@@ -273,7 +275,9 @@ static zend_function_entry smbclient_functions[] =
 	PHP_FE(smbclient_state_free, arginfo_smbclient_state)
 	PHP_FE(smbclient_option_get, arginfo_smbclient_option_get)
 	PHP_FE(smbclient_option_set, arginfo_smbclient_option_set)
+#if HAVE_SMBC_SETOPTIONPROTOCOLS
 	PHP_FE(smbclient_client_protocols, arginfo_smbclient_client_protocols)
+#endif
 	PHP_FE(smbclient_opendir, arginfo_smbclient_path)
 	PHP_FE(smbclient_readdir, arginfo_smbclient_dir)
 	PHP_FE(smbclient_closedir, arginfo_smbclient_dir)
@@ -615,12 +619,14 @@ php_smbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 				return NULL;
 			}
 		}
+#if HAVE_SMBC_SETOPTIONPROTOCOLS
 		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "minproto"))) {
 			smbc_setOptionProtocols(state->ctx, Z_STRVAL_P(tmpzval), NULL);
 		}
 		if (NULL != (tmpzval = php_stream_context_get_option(context, "smb", "maxproto"))) {
 			smbc_setOptionProtocols(state->ctx, NULL, Z_STRVAL_P(tmpzval));
 		}
+#endif
 #else
 		zval **tmpzval;
 
@@ -642,12 +648,14 @@ php_smbclient_state_new (php_stream_context *context, int init TSRMLS_DC)
 				return NULL;
 			}
 		}
+#if HAVE_SMBC_SETOPTIONPROTOCOLS
 		if (php_stream_context_get_option(context, "smb", "minproto", &tmpzval) == SUCCESS) {
 			smbc_setOptionProtocols(state->ctx, Z_STRVAL_PP(tmpzval), NULL);
 		}
 		if (php_stream_context_get_option(context, "smb", "maxproto", &tmpzval) == SUCCESS) {
 			smbc_setOptionProtocols(state->ctx, NULL, Z_STRVAL_PP(tmpzval));
 		}
+#endif
 #endif
 	}
 	if (init) {
@@ -1967,6 +1975,7 @@ PHP_FUNCTION(smbclient_option_set)
 	RETURN_FALSE;
 }
 
+#if HAVE_SMBC_SETOPTIONPROTOCOLS
 PHP_FUNCTION(smbclient_client_protocols)
 {
 	zval *zstate;
@@ -1981,6 +1990,7 @@ PHP_FUNCTION(smbclient_client_protocols)
 
 	RETURN_BOOL(smbc_setOptionProtocols(state->ctx, minproto, maxproto));
 }
+#endif
 
 PHP_FUNCTION(smbclient_statvfs)
 {

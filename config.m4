@@ -70,6 +70,16 @@ if test "$PHP_SMBCLIENT" != "no"; then
     -lsmbclient
   ])
 
+  dnl Check for smbc_setOptionProtocols;
+  dnl seems missing on Alpine
+  PHP_CHECK_LIBRARY(smbclient, smbc_setOptionProtocols,
+  [
+    AC_DEFINE(HAVE_SMBC_SETOPTIONPROTOCOLS, 1, [Whether smbc_setOptionProtocols is available])
+  ], [
+  ], [
+    -lsmbclient
+  ])
+
   PHP_SUBST(SMBCLIENT_SHARED_LIBADD)
   PHP_NEW_EXTENSION(smbclient, smbclient.c smb_streams.c, $ext_shared)
 
