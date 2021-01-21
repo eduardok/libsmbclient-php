@@ -164,10 +164,11 @@ The state resource should be released when you're done with it by passing it to 
 ### smbclient_client_protocols
 
 ```php
-bool smbclient_client_protocols ( resource $state, string $min_protocol, string $max_protocol )
+bool smbclient_client_protocols ( resource $state, string $min_protocol = null, string $max_protocol = null )
 ```
 
 Sets the minimum and maximum protocols (client min protocol and client max protocol) for negotiation.
+Either can be set to null.
 Returns `true` on success, `false` on failure.
 
 ### smbclient_option_set

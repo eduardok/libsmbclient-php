@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2021-01-20</date>
+  <date>2021-01-21</date>
   <time>12:00:00</time>
   <version>
-    <release>1.0.2</release>
+    <release>1.0.3</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
---- Introduces smbclient_client_protocols() to set min and max protocol for negotiation.
+      Add client min/max protocol to streams, and make either min/max optional.
   </notes>
   <contents>
     <dir name="/">
@@ -82,6 +82,21 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2021-01-21</date>
+      <version>
+        <release>1.0.3</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+      - Add client min/max protocol to streams, and make either min/max optional.
+      </notes>
+     </release>
      <release>
       <date>2021-01-20</date>
       <version>
