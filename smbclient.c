@@ -173,7 +173,7 @@ ZEND_BEGIN_ARG_INFO(arginfo_smbclient_option_set, 0)
 	ZEND_ARG_INFO(0, value)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_smbclient_client_protocols, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_smbclient_client_protocols, 0, 0, 1)
 	ZEND_ARG_INFO(0, state)
 	ZEND_ARG_INFO(0, minproto)
 	ZEND_ARG_INFO(0, maxproto)
@@ -1958,11 +1958,11 @@ PHP_FUNCTION(smbclient_option_set)
 PHP_FUNCTION(smbclient_client_protocols)
 {
 	zval *zstate;
-	char *minproto, *maxproto;
+	char *minproto = NULL, *maxproto = NULL;
 	strsize_t minproto_len, maxproto_len;
 	php_smbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &minproto, &minproto_len, &maxproto, &maxproto_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|s!s!", &zstate, &minproto, &minproto_len, &maxproto, &maxproto_len) == FAILURE) {
 		return;
 	}
 	STATE_FROM_ZSTATE;
