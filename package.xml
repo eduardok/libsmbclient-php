@@ -23,9 +23,9 @@
     <active>yes</active>
   </contributor>
   <date>2021-01-21</date>
-  <time>12:00:00</time>
+  <time>18:00:00</time>
   <version>
-    <release>1.0.3</release>
+    <release>1.0.4</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-      Add client min/max protocol to streams, and make either min/max optional.
+      Check if smbc_setOptionProtocols is available, as at least one distro might have a libsmbclient that is too old.
   </notes>
   <contents>
     <dir name="/">
@@ -82,6 +82,21 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2021-01-21</date>
+      <version>
+        <release>1.0.4</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+      - Check if smbc_setOptionProtocols() is available (it was introduced Sep 4, 2018).
+      </notes>
+     </release>
      <release>
       <date>2021-01-21</date>
       <version>
