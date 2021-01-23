@@ -263,6 +263,30 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_smbclient_setxattr, 0, 0, 4)
 	ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO(arginfo_smbclient_print_file, 0)
+	ZEND_ARG_INFO(0, state)
+	ZEND_ARG_INFO(0, file_path)
+	ZEND_ARG_INFO(0, printq)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_smbclient_open_print_job, 0)
+	ZEND_ARG_INFO(0, state)
+	ZEND_ARG_INFO(0, file_path)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_smbclient_unlink_print_job, 0)
+	ZEND_ARG_INFO(0, state)
+	ZEND_ARG_INFO(0, printq)
+	ZEND_ARG_INFO(0, job_id)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_smbclient_list_print_jobs, 0)
+	ZEND_ARG_INFO(0, state)
+	ZEND_ARG_INFO(0, file_path)
+	ZEND_ARG_INFO(0, callback_f)
+ZEND_END_ARG_INFO()
+
+
 /* }}} */
 
 static zend_function_entry smbclient_functions[] =
@@ -302,6 +326,10 @@ static zend_function_entry smbclient_functions[] =
 	PHP_FE(smbclient_removexattr, arginfo_smbclient_getxattr)
 	PHP_FE(smbclient_statvfs, arginfo_smbclient_path)
 	PHP_FE(smbclient_fstatvfs, arginfo_smbclient_file)
+	PHP_FE(smbclient_print_file, arginfo_smbclient_print_file)
+	PHP_FE(smbclient_open_print_job, arginfo_smbclient_open_print_job)
+	PHP_FE(smbclient_unlink_print_job, arginfo_smbclient_unlink_print_job)
+	PHP_FE(smbclient_list_print_jobs, arginfo_smbclient_list_print_jobs)
 #ifdef PHP_FE_END
 	PHP_FE_END
 #else
@@ -2075,3 +2103,150 @@ PHP_FUNCTION(smbclient_fstatvfs)
 	add_assoc_long(return_value, "flag",    st.f_flag);
 	add_assoc_long(return_value, "namemax", st.f_namemax);
 }
+
+PHP_FUNCTION(smbclient_print_file)
+{
+	char *url, *printq;
+	strsize_t url_len, printq_len;
+	int retsize;
+	zval *zstate, *zprintq;
+	smbc_print_file_fn smbc_print_file;
+	php_smbclient_state *state_file;
+	php_smbclient_state *state_queue;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsrs", &zstate, &url, &url_len, &zprintq, &printq, &printq_len) == FAILURE) {
+		return;
+	}
+	SMB_FETCH_RESOURCE(state_file, php_smbclient_state *, &zstate, PHP_SMBCLIENT_STATE_NAME, le_smbclient_state);
+	SMB_FETCH_RESOURCE(state_queue, php_smbclient_state *, &zprintq, PHP_SMBCLIENT_STATE_NAME, le_smbclient_state);
+
+	if (state_file == NULL || state_file->ctx == NULL) {
+		php_error(E_WARNING, "old " PHP_SMBCLIENT_STATE_NAME " is null");
+		RETURN_FALSE;
+	}
+	if (state_queue == NULL || state_queue->ctx == NULL) {
+		php_error(E_WARNING, "new " PHP_SMBCLIENT_STATE_NAME " is null");
+		RETURN_FALSE;
+	}
+	if ((smbc_print_file = smbc_getFunctionPrintFile(state_file->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((retsize = smbc_print_file(state_file->ctx, url, state_queue->ctx, printq)) >= 0) {
+		RETURN_STRINGL(url, retsize);
+	}
+	hide_password(url, url_len);
+	switch (state_file->err = errno) {
+		//REVIEW
+		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", url); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", url); break;
+		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", url); break;
+		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", url, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_open_print_job)
+{
+	char *printq;
+	strsize_t printq_len;
+	int retsize;
+	zval *zstate;
+	SMBCFILE *file;
+	smbc_open_print_job_fn smbc_open_print_job;
+	php_smbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zstate, &printq, &printq_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_open_print_job = smbc_getFunctionOpenPrintJob(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((file = smbc_open_print_job(state->ctx, printq)) != NULL) {
+#if PHP_MAJOR_VERSION >= 7
+		ZVAL_RES(return_value, zend_register_resource(file, le_smbclient_file));
+#else
+		ZEND_REGISTER_RESOURCE(return_value, file, le_smbclient_file);
+#endif
+		return;
+	}
+	hide_password(printq, printq_len);
+	switch (state->err = errno) {
+		//REVIEW
+		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", printq); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", printq); break;
+		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", printq); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", printq); break;
+		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", printq, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_unlink_print_job)
+{
+	char *printq;
+	strsize_t printq_len;
+	int retsize, job_id;
+	zval *zstate;
+	smbc_unlink_print_job_fn smbc_unlink_print_job;
+	php_smbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &printq, &printq_len, &job_id) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_unlink_print_job = smbc_getFunctionUnlinkPrintJob(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((retsize = smbc_unlink_print_job(state->ctx, printq, job_id)) == 0) {
+		RETURN_TRUE;
+	}
+	hide_password(printq, printq_len);
+	switch (state->err = errno) {
+		//REVIEW
+		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", printq); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", printq); break;
+		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", printq); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", printq); break;
+		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", printq, errno); break;
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(smbclient_list_print_jobs)
+{
+	char *printq;
+	strsize_t printq_len;
+	int retsize;
+	zval *zstate;
+	smbc_list_print_jobs_fn smbc_list_print_jobs;
+	smbc_list_print_job_fn list_of_print_jobs;
+	php_smbclient_state *state;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &printq, &printq_len) == FAILURE) {
+		return;
+	}
+	STATE_FROM_ZSTATE;
+
+	if ((smbc_list_print_jobs = smbc_getFunctionListPrintJobs(state->ctx)) == NULL) {
+		RETURN_FALSE;
+	}
+	if ((retsize = smbc_list_print_jobs(state->ctx, printq, list_of_print_jobs)) == 0) {
+		//return array of print jobs
+		RETURN_TRUE;
+	}
+	hide_password(printq, printq_len);
+	switch (state->err = errno) {
+		//REVIEW
+		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", printq); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", printq); break;
+		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", printq); break;
+		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", printq); break;
+		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", printq, errno); break;
+	}
+	RETURN_FALSE;
+}
+

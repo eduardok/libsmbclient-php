@@ -113,6 +113,10 @@ PHP_FUNCTION(smbclient_setxattr);
 PHP_FUNCTION(smbclient_removexattr);
 PHP_FUNCTION(smbclient_statvfs);
 PHP_FUNCTION(smbclient_fstatvfs);
+PHP_FUNCTION(smbclient_print_file);
+PHP_FUNCTION(smbclient_open_print_job);
+PHP_FUNCTION(smbclient_unlink_print_job);
+PHP_FUNCTION(smbclient_list_print_jobs);
 
 /* If Zend Thread Safety (ZTS) is defined, each thread gets its own private
  * php_smbclient_globals structure, the elements of which it can access
