@@ -2136,12 +2136,8 @@ PHP_FUNCTION(smbclient_print_file)
 	}
 	hide_password(url, url_len);
 	switch (state_file->err = errno) {
-		//REVIEW
-		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", url); break;
-		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", url); break;
-		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
-		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", url); break;
-		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", url, errno); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't print file %s: library not initialized or incorrect parameter", url); break;
+		default: php_error(E_WARNING, "Couldn't print file %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -2174,12 +2170,8 @@ PHP_FUNCTION(smbclient_open_print_job)
 	}
 	hide_password(printq, printq_len);
 	switch (state->err = errno) {
-		//REVIEW
-		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", printq); break;
-		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", printq); break;
-		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", printq); break;
-		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", printq); break;
-		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", printq, errno); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't open print share %s: library not initialized or incorrect parameter", printq); break;
+		default: php_error(E_WARNING, "Couldn't open print share %s: unknown error (%d)", printq, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -2193,7 +2185,7 @@ PHP_FUNCTION(smbclient_unlink_print_job)
 	smbc_unlink_print_job_fn smbc_unlink_print_job;
 	php_smbclient_state *state;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &zstate, &printq, &printq_len, &job_id) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsl", &zstate, &printq, &printq_len, &job_id) == FAILURE) {
 		return;
 	}
 	STATE_FROM_ZSTATE;
@@ -2206,12 +2198,10 @@ PHP_FUNCTION(smbclient_unlink_print_job)
 	}
 	hide_password(printq, printq_len);
 	switch (state->err = errno) {
-		//REVIEW
-		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", printq); break;
-		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", printq); break;
-		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", printq); break;
-		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", printq); break;
-		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", printq, errno); break;
+		//review, print job id
+		case EINVAL: php_error(E_WARNING, "Couldn't delete print job %s: library not initialized or incorrect parameter", printq); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't delete print job %s: out of memory", printq); break;
+		default: php_error(E_WARNING, "Couldn't delete print job %s: unknown error (%d)", printq, errno); break;
 	}
 	RETURN_FALSE;
 }
@@ -2240,12 +2230,9 @@ PHP_FUNCTION(smbclient_list_print_jobs)
 	}
 	hide_password(printq, printq_len);
 	switch (state->err = errno) {
-		//REVIEW
-		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", printq); break;
-		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", printq); break;
-		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", printq); break;
-		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", printq); break;
-		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", printq, errno); break;
+		case EINVAL: php_error(E_WARNING, "Couldn't list print jobs for %s: library not initialized or incorrect parameter", printq); break;
+		case ENOMEM: php_error(E_WARNING, "Couldn't list print jobs for %s: out of memory", printq); break;
+		default: php_error(E_WARNING, "Couldn't list print jobs for %s: unknown error (%d)", printq, errno); break;
 	}
 	RETURN_FALSE;
 }
