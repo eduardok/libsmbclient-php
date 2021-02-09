@@ -27,6 +27,8 @@ Some distributions provide binary packages:
 
 ### Installation from sources
 
+- Install the required libsmbclient header files, via package libsmbclient-dev (Debian/Ubuntu) or libsmbclient-devel (CentOS/Fedora/Red Hat).
+
 - Download a [release tarball](https://github.com/eduardok/libsmbclient-php/releases) or check out the source code using git:
 
 ```sh
