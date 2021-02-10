@@ -145,8 +145,12 @@ static void php_smb_pool_drop(php_smbclient_state *state TSRMLS_DC)
 	for (pool = SMBCLIENT_G(pool_first); pool; pool = pool->next) {
 		if (pool->state == state) {
 			pool->nb--;
+			return;
 		}
 	}
+
+	/* Not found (after php_smb_pool_cleanup) so close it */
+	php_smbclient_state_free(state TSRMLS_CC);
 }
 
 void php_smb_pool_cleanup(TSRMLS_D) {
@@ -154,7 +158,9 @@ void php_smb_pool_cleanup(TSRMLS_D) {
 
 	pool = SMBCLIENT_G(pool_first);
 	while (pool) {
-		php_smbclient_state_free(pool->state TSRMLS_CC);
+		if (!pool->nb) { /* Keep it when still used */
+			php_smbclient_state_free(pool->state TSRMLS_CC);
+		}
 		pool = pool->next;
 		efree(pool);
 	}
@@ -169,6 +175,7 @@ static int php_smb_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 	if (!self) {
 		return EOF;
 	}
+
 	if (close_handle) {
 		if (self->handle) {
 			smbc_close = smbc_getFunctionClose(self->state->ctx);
