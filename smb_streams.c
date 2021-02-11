@@ -127,7 +127,7 @@ static php_smbclient_state *php_smb_pool_get(php_stream_context *context, const 
 		}
 	}
 
-	/* Crate a new state and save it in the pool */
+	/* Create a new state and save it in the pool */
 	pool = emalloc(sizeof(*pool));
 	memcpy(pool->hash, hash, 20);
 	pool->nb = 1;

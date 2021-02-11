@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2021-01-21</date>
-  <time>18:00:00</time>
+  <date>2021-02-11</date>
+  <time>05:00:00</time>
   <version>
-    <release>1.0.4</release>
+    <release>1.0.5</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-      Check if smbc_setOptionProtocols is available, as at least one distro might have a libsmbclient that is too old.
+	  Fixes possible segfault in php_smb_ops_close.
   </notes>
   <contents>
     <dir name="/">
@@ -82,6 +82,22 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2021-02-11</date>
+      <version>
+        <release>1.0.5</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+	      - Remi fixed a possible segfault.
+	      - Minor documentation update.
+      </notes>
+     </release>
      <release>
       <date>2021-01-21</date>
       <version>
