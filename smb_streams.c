@@ -62,6 +62,7 @@ typedef struct _php_smb_stream_data {
 	smbc_readdir_fn smbc_readdir;
 	smbc_write_fn smbc_write;
 	smbc_lseek_fn smbc_lseek;
+	smbc_ftruncate_fn smbc_ftruncate;
 } php_smb_stream_data;
 
 
@@ -286,6 +287,38 @@ static int php_smb_ops_seek(php_stream *stream, off_t offset, int whence, off_t 
 	return -1;
 }
 
+static int php_smb_ops_set_option(php_stream *stream, int option, int value, void *ptrparam TSRMLS_DC)
+{
+	size_t newsize;
+	STREAM_DATA_FROM_STREAM();
+
+	if (!self || !self->handle) {
+		return PHP_STREAM_OPTION_RETURN_ERR;
+	}
+	if (!self->smbc_ftruncate) {
+		self->smbc_ftruncate = smbc_getFunctionFtruncate(self->state->ctx);
+	}
+	if (!self->smbc_ftruncate) {
+		return PHP_STREAM_OPTION_RETURN_ERR;
+	}
+
+	switch(option) {
+		case PHP_STREAM_OPTION_TRUNCATE_API:
+			switch (value) {
+				case PHP_STREAM_TRUNCATE_SUPPORTED:
+					return PHP_STREAM_OPTION_RETURN_OK;
+
+				case PHP_STREAM_TRUNCATE_SET_SIZE:
+					newsize = *(size_t*)ptrparam;
+					if (self->smbc_ftruncate(self->state->ctx, self->handle, newsize) == 0) {
+						return PHP_STREAM_OPTION_RETURN_OK;
+					}
+					return PHP_STREAM_OPTION_RETURN_ERR;
+			}
+	}
+	return PHP_STREAM_OPTION_RETURN_NOTIMPL;
+}
+
 static php_stream_ops php_stream_smbio_ops = {
 	php_smb_ops_write,
 	php_smb_ops_read,
@@ -295,7 +328,7 @@ static php_stream_ops php_stream_smbio_ops = {
 	php_smb_ops_seek,
 	NULL, /* cast */
 	php_smb_ops_stat,
-	NULL  /* set_option */
+	php_smb_ops_set_option
 };
 
 static php_stream *
