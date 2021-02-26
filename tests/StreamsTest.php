@@ -62,6 +62,10 @@ class StreamsTest extends PHPUnit_Framework_TestCase
 		$this->assertArrayHasKey('size',  $stat);
 		$this->assertEquals(2*$len+3, $stat['size']);
 
+		$this->assertTrue(ftruncate($fic,42));
+		$stat = fstat($fic);
+		$this->assertEquals(42, $stat['size']);
+
 		$this->assertTrue(fclose($fic));
 	}
 
