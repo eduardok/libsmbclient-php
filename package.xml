@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2021-02-11</date>
-  <time>05:00:00</time>
+  <date>2021-02-28</date>
+  <time>12:00:00</time>
   <version>
-    <release>1.0.5</release>
+    <release>1.0.6</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-	  Fixes possible segfault in php_smb_ops_close.
+	  ftruncate implemented on smb_streams by Remi.
   </notes>
   <contents>
     <dir name="/">
@@ -82,6 +82,21 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2021-02-28</date>
+      <version>
+        <release>1.0.6</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+	      - Remi implemented ftruncate on smb_streams.
+      </notes>
+     </release>
      <release>
       <date>2021-02-11</date>
       <version>
