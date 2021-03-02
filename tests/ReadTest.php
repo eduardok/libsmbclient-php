@@ -34,7 +34,7 @@ final class ReadTest extends TestCase
 		$file = smbclient_open($state, $this->testuri, 'r');
 		$this->assertTrue(is_resource($file));
 
-		for ($data = ''; $tmp = smbclient_read($state, $file, 42) ; $data .= $tmp) {
+		for ($data = ''; $tmp = @smbclient_read($state, $file, 42) ; $data .= $tmp) {
 			$this->assertTrue(\strlen($tmp) > 0 && \strlen($tmp <= 42));
 		}
 		$this->assertEmpty($tmp);

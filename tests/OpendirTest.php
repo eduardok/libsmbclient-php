@@ -18,7 +18,7 @@ final class OpendirTest extends TestCase
 	public function
 	testOpendirInvalidState ()
 	{
-		$dir = smbclient_opendir(null, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir');
+		$dir = @smbclient_opendir(null, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir');
 		$this->assertFalse($dir);
 	}
 
@@ -30,7 +30,7 @@ final class OpendirTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
-		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/does-not-exist');
+		$dir = @smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/does-not-exist');
 		$this->assertFalse($dir);
 		$errno = smbclient_state_errno($state);
 		$this->assertEquals(2, $errno); // ENOENT
@@ -44,7 +44,7 @@ final class OpendirTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
-		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/noaccess');
+		$dir = @smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/noaccess');
 		$this->assertFalse($dir);
 		$errno = smbclient_state_errno($state);
 		$this->assertEquals(13, $errno); // EACCES
@@ -58,7 +58,7 @@ final class OpendirTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
-		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testfile.txt');
+		$dir = @smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testfile.txt');
 		$this->assertFalse($dir);
 		$errno = smbclient_state_errno($state);
 		$this->assertEquals(20, $errno); // ENOTDIR

@@ -16,6 +16,6 @@ final class StateInitTest extends TestCase
 	public function
 	testStateInitInvalidState ()
 	{
-		$this->assertFalse(smbclient_state_init(null));
+		$this->assertFalse(@smbclient_state_init(null));
 	}
 }
