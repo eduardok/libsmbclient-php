@@ -16,6 +16,7 @@ final class StateFreeTest extends TestCase
 	public function
 	testStateFreeEmpty ()
 	{
+                error_reporting(0);
 		$this->assertFalse(@smbclient_state_free());
 	}
 
@@ -25,6 +26,7 @@ final class StateFreeTest extends TestCase
 	public function
 	testStateFreeNull ()
 	{
+                error_reporting(0);
 		$this->assertFalse(@smbclient_state_free(null));
 	}
 
@@ -36,6 +38,7 @@ final class StateFreeTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		$this->assertTrue(smbclient_state_free($state));
+                error_reporting(0);
 		$this->assertFalse(@smbclient_state_free($state));
 	}
 }

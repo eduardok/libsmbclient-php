@@ -20,6 +20,7 @@ final class ClosedirTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		error_reporting(0);
 		$this->assertFalse(@smbclient_closedir($state));
 	}
 
@@ -31,6 +32,7 @@ final class ClosedirTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
+		error_reporting(0);
 		$this->assertTrue(@smbclient_closedir($state, null));
 	}
 
@@ -44,6 +46,7 @@ final class ClosedirTest extends TestCase
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$dir = smbclient_opendir($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE);
 		$this->assertTrue(smbclient_closedir($state, $dir));
+		error_reporting(0);
 		$this->assertFalse(@smbclient_closedir($state, $dir));
 	}
 }

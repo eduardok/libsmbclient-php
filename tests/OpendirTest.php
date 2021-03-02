@@ -18,6 +18,7 @@ final class OpendirTest extends TestCase
 	public function
 	testOpendirInvalidState ()
 	{
+                error_reporting(0);
 		$dir = @smbclient_opendir(null, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir');
 		$this->assertFalse($dir);
 	}
