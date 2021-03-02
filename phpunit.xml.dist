@@ -7,7 +7,10 @@
      <const name="SMB_SHARE" value="testshare" />
      <const name="SMB_LOCAL" value="/home/testuser/testshare" />
   </php>
-  <testsuite name="libsmbclient-php">
+  <testsuite name="php">
     <directory suffix=".php">tests</directory>
+  </testsuite>
+  <testsuite name="php8">
+    <directory suffix=".php">tests8</directory>
   </testsuite>
 </phpunit>

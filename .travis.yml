@@ -39,4 +39,4 @@ script:
   - ./configure
   - make
   - sudo make install
-  - php --define extension="smbclient.so" phpunit.phar --verbose
+  - php --define extension="smbclient.so" phpunit.phar --verbose --testsuite php$(php --version | grep 'PHP 8' &>/dev/null && echo '8')
