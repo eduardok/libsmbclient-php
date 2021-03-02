@@ -32,7 +32,7 @@ before_install:
   - sudo service smbd restart
   - testparm -s
   - ( echo password; echo password ) | sudo smbpasswd -s -a testuser
-  - wget https://phar.phpunit.de/phpunit-8.phar -O phpunit.phar
+  - wget https://phar.phpunit.de/phpunit-9.phar -O phpunit.phar
 
 script:
   - phpize
