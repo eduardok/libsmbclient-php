@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class ClosedirTest extends PHPUnit_Framework_TestCase
+final class ClosedirTest extends TestCase
 {
 	public function
 	testClosedirSuccess ()
