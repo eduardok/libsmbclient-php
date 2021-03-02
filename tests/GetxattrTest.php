@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class GetxattrTest extends PHPUnit_Framework_TestCase
+final class GetxattrTest extends TestCase
 {
 	public function
 	testGetxattrFileSuccess ()

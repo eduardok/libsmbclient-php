@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class RenameTest extends PHPUnit_Framework_TestCase
+final class RenameTest extends TestCase
 {
 	public function
 	testRenameFileSuccess ()

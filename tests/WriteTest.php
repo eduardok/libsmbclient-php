@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class WriteTest extends PHPUnit_Framework_TestCase
+final class WriteTest extends TestCase
 {
 	private $testdata =
 		"Lorem ipsum dolor sit amet, consectetur adipisicing elit,

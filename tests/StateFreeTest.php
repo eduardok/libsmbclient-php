@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class StateFreeTest extends PHPUnit_Framework_TestCase
+final class StateFreeTest extends TestCase
 {
 	public function
 	testStateFreeValid ()

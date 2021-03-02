@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class StateInitTest extends PHPUnit_Framework_TestCase
+final class StateInitTest extends TestCase
 {
 	public function
 	testStateInitValid ()

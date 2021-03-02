@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class LseekTest extends PHPUnit_Framework_TestCase
+final class LseekTest extends TestCase
 {
 	// The URI of the test file seen through Samba:
 	private $testuri;
