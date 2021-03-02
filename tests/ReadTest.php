@@ -13,8 +13,7 @@ final class ReadTest extends TestCase
 	// The "real" file on the filesystem:
 	private $realfile;
 
-	public function
-	setup()
+	protected function setup() : void
 	{
 		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/readtest.txt';
 		$this->realfile = SMB_LOCAL.'/readtest.txt';
@@ -22,8 +21,7 @@ final class ReadTest extends TestCase
 		file_put_contents($this->realfile, $this->testdata);
 	}
 
-	public function
-	tearDown()
+	protected function tearDown() : void
 	{
 		@unlink($this->realfile);
 	}

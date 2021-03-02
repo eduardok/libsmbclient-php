@@ -10,8 +10,7 @@ final class StreamsTest extends TestCase
 		"Lorem ipsum dolor sit amet, consectetur adipisicing elit,
 		sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n";
 
-	public function
-	setup()
+	protected function setup() : void
 	{
 		$this->readuri  = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
 		$this->realread = SMB_LOCAL . '/testdir/testfile.txt';
@@ -24,8 +23,7 @@ final class StreamsTest extends TestCase
 		$this->realdir  = SMB_LOCAL . '/streamdir';
 	}
 
-	public function
-	tearDown()
+	protected function tearDown() : void
 	{
 		@unlink($this->realfile);
 		@rmdir($this->realdir);

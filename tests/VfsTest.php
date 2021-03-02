@@ -5,7 +5,7 @@ final class VfsTest extends TestCase
 {
 	private $testuri;
 
-	public function setup() {
+	protected function setup() : void {
 		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
 	}
 

@@ -13,16 +13,14 @@ final class WriteTest extends TestCase
 	// The "real" file on the filesystem:
 	private $realfile;
 
-	public function
-	setup()
+	protected function setup() : void
 	{
 		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/writetest.txt';
 		$this->realfile = SMB_LOCAL.'/writetest.txt';
 		$this->testuri2 = 'smb://'.SMB_USER.':'.SMB_PASS.'@'.SMB_HOST.'/'.SMB_SHARE.'/writetest.txt';
 	}
 
-	public function
-	tearDown()
+	protected function tearDown() : void
 	{
 		@unlink($this->realfile);
 	}
