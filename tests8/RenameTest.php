@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class RenameTest extends PHPUnit_Framework_TestCase
+final class RenameTest extends TestCase
 {
 	public function
 	testRenameFileSuccess ()
@@ -34,7 +35,7 @@ class RenameTest extends PHPUnit_Framework_TestCase
 	{
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
-		$this->assertFalse(smbclient_rename($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/does-not-exist', $state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/somewhere-else'));
+		$this->assertFalse(@smbclient_rename($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/does-not-exist', $state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/somewhere-else'));
 		$this->assertEquals(2, smbclient_state_errno($state));	// ENOENT
 	}
 

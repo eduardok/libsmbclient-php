@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class LseekTest extends PHPUnit_Framework_TestCase
+final class LseekTest extends TestCase
 {
 	// The URI of the test file seen through Samba:
 	private $testuri;
@@ -8,7 +9,7 @@ class LseekTest extends PHPUnit_Framework_TestCase
 	// The "real" file on the filesystem:
 	private $realfile;
 
-	public function setup() {
+	protected function setup() : void {
 		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/lseektest.txt';
 		$this->realfile = SMB_LOCAL.'/lseektest.txt';
 	}

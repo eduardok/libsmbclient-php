@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class ReadTest extends PHPUnit_Framework_TestCase
+final class ReadTest extends TestCase
 {
 	private $testdata =
 		"Lorem ipsum dolor sit amet, consectetur adipisicing elit,
@@ -12,8 +13,7 @@ class ReadTest extends PHPUnit_Framework_TestCase
 	// The "real" file on the filesystem:
 	private $realfile;
 
-	public function
-	setup()
+	protected function setup() : void
 	{
 		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/readtest.txt';
 		$this->realfile = SMB_LOCAL.'/readtest.txt';
@@ -21,8 +21,7 @@ class ReadTest extends PHPUnit_Framework_TestCase
 		file_put_contents($this->realfile, $this->testdata);
 	}
 
-	public function
-	tearDown()
+	protected function tearDown() : void
 	{
 		@unlink($this->realfile);
 	}
@@ -34,8 +33,8 @@ class ReadTest extends PHPUnit_Framework_TestCase
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$file = smbclient_open($state, $this->testuri, 'r');
 		$this->assertTrue(is_resource($file));
-
-		for ($data = ''; $tmp = smbclient_read($state, $file, 42) ; $data .= $tmp) {
+                error_reporting(0);
+		for ($data = ''; $tmp = @smbclient_read($state, $file, 42) ; $data .= $tmp) {
 			$this->assertTrue(\strlen($tmp) > 0 && \strlen($tmp <= 42));
 		}
 		$this->assertEmpty($tmp);

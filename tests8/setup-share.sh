@@ -10,3 +10,4 @@ chmod 0700 /home/testuser/testshare/noaccess
 
 # Our test user can write to /home/testuser/testshare:
 chmod 0777 /home/testuser/testshare
+sed -i 's/server string =.*$/server string = Test\nnetbios name = testserver/g' /etc/samba/smb.conf

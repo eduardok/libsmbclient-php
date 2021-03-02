@@ -1,10 +1,11 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class VfsTest extends PHPUnit_Framework_TestCase
+final class VfsTest extends TestCase
 {
 	private $testuri;
 
-	public function setup() {
+	protected function setup() : void {
 		$this->testuri = 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt';
 	}
 

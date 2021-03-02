@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class StateFreeTest extends PHPUnit_Framework_TestCase
+final class StateFreeTest extends TestCase
 {
 	public function
 	testStateFreeValid ()
@@ -15,7 +16,8 @@ class StateFreeTest extends PHPUnit_Framework_TestCase
 	public function
 	testStateFreeEmpty ()
 	{
-		$this->assertFalse(smbclient_state_free());
+                error_reporting(0);
+		$this->assertFalse(@smbclient_state_free());
 	}
 
 	/**
@@ -24,7 +26,8 @@ class StateFreeTest extends PHPUnit_Framework_TestCase
 	public function
 	testStateFreeNull ()
 	{
-		$this->assertFalse(smbclient_state_free(null));
+                error_reporting(0);
+		$this->assertFalse(@smbclient_state_free(null));
 	}
 
 	/**
@@ -35,6 +38,7 @@ class StateFreeTest extends PHPUnit_Framework_TestCase
 	{
 		$state = smbclient_state_new();
 		$this->assertTrue(smbclient_state_free($state));
-		$this->assertFalse(smbclient_state_free($state));
+                error_reporting(0);
+		$this->assertFalse(@smbclient_state_free($state));
 	}
 }

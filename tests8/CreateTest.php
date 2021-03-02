@@ -1,6 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+use PHPUnit\Framework\TestCase;
 
-class CreateTest extends PHPUnit_Framework_TestCase
+final class CreateTest extends TestCase
 {
 	public function
 	testCreateSuccess ()
