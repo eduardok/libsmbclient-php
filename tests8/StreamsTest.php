@@ -101,7 +101,7 @@ final class StreamsTest extends TestCase
 		$this->assertTrue(copy($this->readuri, $this->writeuri));
 		$this->assertFileExists($this->realfile);
 		$this->assertTrue(unlink($this->writeuri));
-		$this->assertFileNotExists($this->realfile);
+		$this->assertFileDoesNotExist($this->realfile);
 	}
 
 	public function
