@@ -36,7 +36,7 @@ class ReadTest extends PHPUnit_Framework_TestCase
 		$this->assertTrue(is_resource($file));
 
 		for ($data = ''; $tmp = smbclient_read($state, $file, 42) ; $data .= $tmp) {
-			$this->assertTrue(\strlen($tmp) > 0 && \strlen($tmp <= 42));
+			$this->assertTrue(\strlen($tmp) > 0 && \strlen($tmp) <= 42);
 		}
 		$this->assertEmpty($tmp);
 		$this->assertEquals($this->testdata, $data);
