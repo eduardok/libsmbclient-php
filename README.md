@@ -4,7 +4,7 @@ libsmbclient-php: a PHP wrapper for libsmbclient
 libsmbclient-php is a PHP extension that uses Samba's libsmbclient library
 to provide Samba related functions to PHP programs.
 
-[![Build Status](https://travis-ci.org/eduardok/libsmbclient-php.svg)](https://travis-ci.org/eduardok/libsmbclient-php)
+[![Build Status](https://travis-ci.org/eduardok/libsmbclient-php.svg?branch=master)](https://travis-ci.org/eduardok/libsmbclient-php)
 
 Getting started
 ---------------
