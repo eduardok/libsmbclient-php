@@ -1,6 +1,11 @@
 <?php declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
+function myErrorHandler($errno, $errstr, $errfile, $errline)
+{
+	return true;
+}
+
 final class ClosedirTest extends TestCase
 {
 	public function
@@ -21,6 +26,7 @@ final class ClosedirTest extends TestCase
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		error_reporting(0);
+		set_error_handler("myErrorHandler");
 		$this->assertFalse(@smbclient_closedir($state));
 	}
 
