@@ -16,8 +16,12 @@ final class StateFreeTest extends TestCase
 	public function
 	testStateFreeEmpty ()
 	{
-                error_reporting(0);
-		$this->assertFalse(@smbclient_state_free());
+		try {
+			@smbclient_state_free();
+			$this->assertFalse(true);
+		} catch (\ArgumentCountError $ae) {
+			$this->assertFalse(false);
+		}
 	}
 
 	/**
@@ -26,8 +30,12 @@ final class StateFreeTest extends TestCase
 	public function
 	testStateFreeNull ()
 	{
-                error_reporting(0);
-		$this->assertFalse(@smbclient_state_free(null));
+		try {
+			@smbclient_state_free(null);
+			$this->assertFalse(true);
+		} catch (\TypeError $ae) {
+			$this->assertFalse(false);
+		}
 	}
 
 	/**
@@ -38,7 +46,11 @@ final class StateFreeTest extends TestCase
 	{
 		$state = smbclient_state_new();
 		$this->assertTrue(smbclient_state_free($state));
-                error_reporting(0);
-		$this->assertFalse(@smbclient_state_free($state));
+		try {
+			@smbclient_state_free($state);
+			$this->assertFalse(true);
+		} catch (\TypeError $ae) {
+			$this->assertFalse(false);
+		}
 	}
 }
