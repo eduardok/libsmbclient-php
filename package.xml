@@ -42,6 +42,9 @@
       <file name="config.m4" role="src"/>
       <file name="php_smbclient.h" role="src"/>
       <file name="smbclient.c" role="src"/>
+      <file name="smbclient.stub.php" role="src"/>
+      <file name="smbclient_arginfo.h" role="src"/>
+      <file name="smbclient_legacy_arginfo.h" role="src"/>
       <file name="smb_streams.c" role="src"/>
       <!-- documentation -->
       <file name="LICENSE" role="doc"/>
