@@ -1667,8 +1667,11 @@ PHP_FUNCTION(smbclient_getxattr)
 	zval *zstate;
 	smbc_getxattr_fn smbc_getxattr;
 	php_smbclient_state *state;
+#if PHP_MAJOR_VERSION >= 7
+	zend_string *svalues = NULL;
+#else
 	char *values = NULL;
-	ALLOCA_FLAG(use_heap)
+#endif
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &url, &url_len, &name, &name_len) == FAILURE) {
 		return;
@@ -1681,24 +1684,36 @@ PHP_FUNCTION(smbclient_getxattr)
 
 	xattr_size = smbc_getxattr(state->ctx, url, name, NULL, 0);
 
-	if(xattr_size < 0) {
+	if (xattr_size < 0) {
 		goto fail;
 	}
 
-	if(xattr_size == 0) {
+	if (xattr_size == 0) {
 		RETURN_EMPTY_STRING();
 	}
 
-	values = do_alloca(xattr_size + 1, use_heap);
-
-	retsize = smbc_getxattr(state->ctx, url, name, values, sizeof(values));
-
-	if(retsize < 0)
+#if PHP_MAJOR_VERSION >= 7
+	svalues = zend_string_alloc(xattr_size, 0);
+	retsize = smbc_getxattr(state->ctx, url, name, ZSTR_VAL(svalues), xattr_size + 1);
+	if (retsize > xattr_size) { /* time-of-check, time-of-use error */
+		retsize = xattr_size;
+	} else if (retsize < 0) {
+		zend_string_release(svalues);
 		goto fail;
+	}
+	RETURN_STR(svalues);
+#else
+	values = emalloc(xattr_size + 1);
+	retsize = smbc_getxattr(state->ctx, url, name, values, xattr_size + 1);
+	if (retsize > xattr_size) { /* time-of-check, time-of-use error */
+		retsize = xattr_size;
+	} else if (retsize < 0) {
+		efree(values);
+		goto fail;
+	}
+	RETURN_STRINGL(values, retsize, 0);
+#endif
 
-	RETVAL_STRING(values);
-	free_alloca(values, use_heap);
-	return;
 fail:
 	hide_password(url, url_len);
 	switch (state->err = errno) {
