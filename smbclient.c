@@ -1664,6 +1664,7 @@ PHP_FUNCTION(smbclient_getxattr)
 	strsize_t url_len, name_len;
 	int retsize;
 	char values[1000];
+	int xattrlen;
 	zval *zstate;
 	smbc_getxattr_fn smbc_getxattr;
 	php_smbclient_state *state;
@@ -1681,13 +1682,11 @@ PHP_FUNCTION(smbclient_getxattr)
 	 * seems wasteful, and vulnerable to a time-of-check, time-of-use
 	 * error. */
 	if ((retsize = smbc_getxattr(state->ctx, url, name, values, sizeof(values))) >= 0) {
-		if (retsize > sizeof(values)) {
-			retsize = sizeof(values);
-		}
+		xattrlen = strlen(values);
 #if PHP_MAJOR_VERSION >= 7
-		RETURN_STRINGL(values, retsize);
+		RETURN_STRINGL(values, xattrlen);
 #else
-		RETURN_STRINGL(values, retsize, 1);
+		RETURN_STRINGL(values, xattrlen, 1);
 #endif
 	}
 	hide_password(url, url_len);
