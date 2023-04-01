@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2021-02-28</date>
+  <date>2023-04-01</date>
   <time>12:00:00</time>
   <version>
-    <release>1.0.6</release>
+    <release>1.0.7</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -82,6 +82,21 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2023-04-01</date>
+      <version>
+        <release>1.0.7</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+	      - xattr issue fixed by Remi.
+      </notes>
+     </release>
      <release>
       <date>2021-02-28</date>
       <version>
