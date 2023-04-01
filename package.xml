@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-	  ftruncate implemented on smb_streams by Remi.
+	  xattr fix by Remi.
   </notes>
   <contents>
     <dir name="/">
