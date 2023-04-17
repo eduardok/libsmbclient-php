@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2023-04-01</date>
-  <time>13:00:00</time>
+  <date>2023-04-17</date>
+  <time>3:16:00</time>
   <version>
-    <release>1.1.0</release>
+    <release>1.1.1</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-	  PHP 8 readiness, by Remi.
+	  Workaround for regression in libsmbclient 4.16.9 and 4.17.5.
   </notes>
   <contents>
     <dir name="/">
@@ -85,6 +85,21 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
+     <release>
+      <date>2023-04-17</date>
+      <version>
+        <release>1.1.1</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+	      - Workaround for libsmbclient regression.
+      </notes>
+     </release>
      <release>
       <date>2023-04-01</date>
       <version>
