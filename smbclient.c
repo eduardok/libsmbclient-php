@@ -1502,6 +1502,11 @@ PHP_FUNCTION(smbclient_listxattr)
 	RETURN_FALSE;
 }
 
+
+/* loop from 16K to 256M */
+#define DEFAULT_BUFFER_SIZE   (16 << 10)
+#define MAXIMUM_BUFFER_SIZE  (256 << 20)
+
 PHP_FUNCTION(smbclient_getxattr)
 {
 	char *url, *name;
@@ -1511,11 +1516,7 @@ PHP_FUNCTION(smbclient_getxattr)
 	zval *zstate;
 	smbc_getxattr_fn smbc_getxattr;
 	php_smbclient_state *state;
-#if PHP_MAJOR_VERSION >= 7
-	zend_string *svalues = NULL;
-#else
 	char *values = NULL;
-#endif
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &zstate, &url, &url_len, &name, &name_len) == FAILURE) {
 		return;
@@ -1533,30 +1534,40 @@ PHP_FUNCTION(smbclient_getxattr)
 	}
 
 	if (xattr_size == 0) {
-		RETURN_EMPTY_STRING();
+		/* since version 4.16.9 and 4.17.5 this means success :(
+		 * so there is no way to compute the buffer size
+		 * see https://bugzilla.samba.org/show_bug.cgi?id=14808
+		 */
+		xattr_size = DEFAULT_BUFFER_SIZE;
+		do {
+			if (values) {
+				efree(values);
+				xattr_size *= 4;
+			}
+			values = emalloc(xattr_size + 1);
+			retsize = smbc_getxattr(state->ctx, url, name, values, xattr_size + 1);
+		} while (retsize < 0 && xattr_size < MAXIMUM_BUFFER_SIZE);
+	} else {
+		values = emalloc(xattr_size + 1);
+		retsize = smbc_getxattr(state->ctx, url, name, values, xattr_size + 1);
 	}
 
-#if PHP_MAJOR_VERSION >= 7
-	svalues = zend_string_alloc(xattr_size, 0);
-	retsize = smbc_getxattr(state->ctx, url, name, ZSTR_VAL(svalues), xattr_size + 1);
-	if (retsize > xattr_size) { /* time-of-check, time-of-use error */
-		retsize = xattr_size;
-	} else if (retsize < 0) {
-		zend_string_release(svalues);
-		goto fail;
-	}
-	RETURN_STR(svalues);
-#else
-	values = emalloc(xattr_size + 1);
-	retsize = smbc_getxattr(state->ctx, url, name, values, xattr_size + 1);
-	if (retsize > xattr_size) { /* time-of-check, time-of-use error */
+	if (retsize == 0) { /* success, since 4.16.9 and 4.17.5 */
+		retsize = strlen(values);
+	} else if (retsize > xattr_size) { /* time-of-check, time-of-use error, never happen as recent versions return -1 */
 		retsize = xattr_size;
 	} else if (retsize < 0) {
 		efree(values);
 		goto fail;
 	}
-	RETURN_STRINGL(values, retsize, 0);
+	/* realloc the string to its real size */
+#if PHP_MAJOR_VERSION >= 7
+	RETVAL_STRINGL(values, retsize);
+#else
+	RETVAL_STRINGL(values, retsize, 1);
 #endif
+	efree(values);
+	return;
 
 fail:
 	hide_password(url, url_len);
@@ -1565,7 +1576,12 @@ fail:
 		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", url); break;
 		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", url); break;
-		default: php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", url, errno); break;
+		default:
+			if (xattr_size == MAXIMUM_BUFFER_SIZE) {
+				php_error(E_WARNING, "Couldn't get xattr for %s: internal buffer is too small", url); break;
+			} else {
+				php_error(E_WARNING, "Couldn't get xattr for %s: unknown error (%d)", url, errno); break;
+			}
 	}
 	RETURN_FALSE;
 }

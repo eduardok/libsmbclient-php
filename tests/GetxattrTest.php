@@ -8,7 +8,7 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir/testfile.txt', 'system.*');
-		$this->assertTrue(is_string($attr));
+		$this->assertTrue(is_string($attr) && strlen($attr));
 	}
 
 	public function
@@ -17,7 +17,7 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE.'/testdir', 'system.*');
-		$this->assertTrue(is_string($attr));
+		$this->assertTrue(is_string($attr) && strlen($attr));
 	}
 
 	public function
@@ -26,7 +26,7 @@ class GetxattrTest extends PHPUnit_Framework_TestCase
 		$state = smbclient_state_new();
 		smbclient_state_init($state, null, SMB_USER, SMB_PASS);
 		$attr = smbclient_getxattr($state, 'smb://'.SMB_HOST.'/'.SMB_SHARE, 'system.*');
-		$this->assertTrue(is_string($attr));
+		$this->assertTrue(is_string($attr) && strlen($attr));
 	}
 
 	/**
