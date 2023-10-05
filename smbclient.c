@@ -1537,6 +1537,7 @@ PHP_FUNCTION(smbclient_getxattr)
 		/* since version 4.16.9 and 4.17.5 this means success :(
 		 * so there is no way to compute the buffer size
 		 * see https://bugzilla.samba.org/show_bug.cgi?id=14808
+		 * This regression is fixed in 4.18.7 and 4.19.0
 		 */
 		xattr_size = DEFAULT_BUFFER_SIZE;
 		do {
