@@ -198,11 +198,7 @@ static int php_smb_ops_flush(php_stream *stream TSRMLS_DC)
 	return 0;
 }
 
-#if PHP_VERSION_ID < 70400
-static size_t php_smb_ops_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
-#else
 static ssize_t php_smb_ops_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
-#endif
 {
 	ssize_t n = 0;
 	STREAM_DATA_FROM_STREAM();
@@ -220,18 +216,10 @@ static ssize_t php_smb_ops_read(php_stream *stream, char *buf, size_t count TSRM
 	if (n == 0 || n < (ssize_t)count) {
 		stream->eof = 1;
 	}
-#if PHP_VERSION_ID < 70400
-	return (n < 1 ? 0 : (size_t)n);
-#else
 	return n;
-#endif
 }
 
-#if PHP_VERSION_ID < 70400
-static size_t php_smb_ops_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
-#else
 static ssize_t php_smb_ops_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
-#endif
 {
 	ssize_t len = 0;
 	STREAM_DATA_FROM_STREAM();
@@ -246,11 +234,7 @@ static ssize_t php_smb_ops_write(php_stream *stream, const char *buf, size_t cou
 		len = self->smbc_write(self->state->ctx, self->handle, buf, count);
 	}
 
-#if PHP_VERSION_ID < 70400
-	return (len < 0 ? 0 : (size_t)len);
-#else
 	return len;
-#endif
 }
 
 static int php_smb_ops_stat(php_stream *stream, php_stream_statbuf *ssb TSRMLS_DC) /* {{{ */
@@ -334,19 +318,10 @@ static php_stream_ops php_stream_smbio_ops = {
 static php_stream *
 php_stream_smb_opener(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *path,
-	char *mode,
-#else
 	const char *path,
 	const char *mode,
-#endif
 	int options,
-#if PHP_MAJOR_VERSION < 7
-	char **opened_path,
-#else
 	zend_string **opened_path,
-#endif
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {
@@ -390,11 +365,7 @@ php_stream_smb_opener(
 static int
 php_stream_smb_unlink(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *url,
-#else
 	const char *url,
-#endif
 	int options,
 	php_stream_context *context
 	TSRMLS_DC)
@@ -429,11 +400,7 @@ php_stream_smb_unlink(
 static int
 php_stream_smb_mkdir(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *url,
-#else
 	const char *url,
-#endif
 	int mode,
 	int options,
 	php_stream_context *context
@@ -469,11 +436,7 @@ php_stream_smb_mkdir(
 static int
 php_stream_smb_rmdir(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *url,
-#else
 	const char *url,
-#endif
 	int options,
 	php_stream_context *context
 	TSRMLS_DC)
@@ -504,13 +467,8 @@ php_stream_smb_rmdir(
 static int
 php_stream_smb_rename(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *url_from,
-	char *url_to,
-#else
 	const char *url_from,
 	const char *url_to,
-#endif
 	int options,
 	php_stream_context *context
 	TSRMLS_DC)
@@ -557,11 +515,7 @@ static int php_smbdir_ops_close(php_stream *stream, int close_handle TSRMLS_DC)
 	return EOF;
 }
 
-#if PHP_VERSION_ID < 70400
-static size_t php_smbdir_ops_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
-#else
 static ssize_t php_smbdir_ops_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
-#endif
 {
 	struct smbc_dirent *dirent;
 	php_stream_dirent *ent = (php_stream_dirent*)buf;
@@ -602,19 +556,10 @@ static php_stream_ops	php_stream_smbdir_ops = {
 static php_stream *
 php_stream_smbdir_opener(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *path,
-	char *mode,
-#else
 	const char *path,
 	const char *mode,
-#endif
 	int options,
-#if PHP_MAJOR_VERSION < 7
-	char **opened_path,
-#else
 	zend_string **opened_path,
-#endif
 	php_stream_context *context
 	STREAMS_DC TSRMLS_DC)
 {
@@ -647,11 +592,7 @@ php_stream_smbdir_opener(
 static int
 php_stream_smb_stat(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *url,
-#else
 	const char *url,
-#endif
 	int flags,
 	php_stream_statbuf *ssb,
 	php_stream_context *context
@@ -680,15 +621,10 @@ php_stream_smb_stat(
 	return -1;
 }
 
-#if PHP_VERSION_ID >= 50400
 static int
 php_stream_smb_metadata(
 	php_stream_wrapper *wrapper,
-#if PHP_VERSION_ID < 50600
-	char *url,
-#else
 	const char *url,
-#endif
 	int option,
 	void *value,
 	php_stream_context *context
@@ -763,7 +699,6 @@ php_stream_smb_metadata(
 	php_clear_stat_cache(0, NULL, 0 TSRMLS_CC);
 	return 1;
 }
-#endif
 
 static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_opener,
@@ -776,9 +711,7 @@ static php_stream_wrapper_ops smb_stream_wops = {
 	php_stream_smb_rename,
 	php_stream_smb_mkdir,
 	php_stream_smb_rmdir
-#if PHP_VERSION_ID >= 50400
 	, php_stream_smb_metadata
-#endif
 };
 
 php_stream_wrapper php_stream_smb_wrapper = {
