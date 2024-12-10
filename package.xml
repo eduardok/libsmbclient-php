@@ -22,10 +22,10 @@
     <email>remi@php.net</email>
     <active>yes</active>
   </contributor>
-  <date>2024-11-26</date>
-  <time>12:45:00</time>
+  <date>2024-12-10</date>
+  <time>12:30:00</time>
   <version>
-    <release>1.1.2</release>
+    <release>1.2.0dev</release>
     <api>0.8.0</api>
   </version>
   <stability>
@@ -34,7 +34,7 @@
   </stability>
   <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
   <notes>
-	  Build fixes.
+    Removed support for PHP versions older than 7.4.
   </notes>
   <contents>
     <dir name="/">
@@ -75,7 +75,7 @@
   <dependencies>
     <required>
       <php>
-        <min>5.3.7</min>
+        <min>7.4.0</min>
       </php>
       <pearinstaller>
         <min>1.9.5</min>
@@ -85,7 +85,22 @@
   <providesextension>smbclient</providesextension>
   <extsrcrelease/>
   <changelog>
-      <release>
+     <release>
+      <date>2024-12-09</date>
+      <version>
+        <release>1.2.0dev</release>
+        <api>0.8.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <license uri="http://opensource.org/licenses/BSD-2-Clause">BSD 2-clause</license>
+      <notes>
+       - Removed support for PHP older than 7.4.
+      </notes>
+     </release>
+     <release>
       <date>2024-11-25</date>
       <version>
         <release>1.1.2</release>
@@ -99,8 +114,8 @@
       <notes>
 	      - Build fixes.
       </notes>
-     </release>
-     <release>
+      </release>
+      <release>
       <date>2023-04-17</date>
       <version>
         <release>1.1.1</release>

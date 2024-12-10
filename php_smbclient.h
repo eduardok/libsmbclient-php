@@ -43,7 +43,7 @@
 
 #include <libsmbclient.h>
 
-#define PHP_SMBCLIENT_VERSION "1.1.2"
+#define PHP_SMBCLIENT_VERSION "1.2.0dev"
 
 extern zend_module_entry smbclient_module_entry;
 #define phpext_smbclient_ptr &smbclient_module_entry
@@ -119,15 +119,7 @@ PHP_FUNCTION(smbclient_fstatvfs);
  * through the SMBCLIENT() macro. Without ZTS, there is just one master
  * structure in which we access the members directly: */
 
-#if PHP_MAJOR_VERSION >= 7
 #define SMBCLIENT_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(smbclient, v)
-#else
-#ifdef ZTS
-#define SMBCLIENT_G(v) TSRMG(smbclient_globals_id, zend_smbclient_globals *, v)
-#else
-#define SMBCLIENT_G(v) (smbclient_globals.v)
-#endif
-#endif
 
 #if PHP_MAJOR_VERSION >= 8
 #define TSRMLS_D void

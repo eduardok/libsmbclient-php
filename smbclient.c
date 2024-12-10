@@ -56,12 +56,7 @@ ZEND_DECLARE_MODULE_GLOBALS(smbclient)
 static int le_smbclient_state;
 static int le_smbclient_file;
 
-#if PHP_MAJOR_VERSION >= 7
 typedef size_t strsize_t;
-#else
-typedef int strsize_t;
-typedef long zend_long;
-#endif
 
 enum {
 	SMBCLIENT_OPT_OPEN_SHAREMODE = 1,
@@ -263,11 +258,7 @@ smbclient_state_dtor (
 
 static void
 smbclient_file_dtor (
-#if PHP_VERSION_ID >= 70000
 	zend_resource *rsrc
-#else
-	zend_rsrc_list_entry *rsrc
-#endif
 	TSRMLS_DC)
 {
 	/* Because libsmbclient's file/dir close functions require a pointer to
