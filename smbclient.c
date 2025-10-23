@@ -1434,7 +1434,9 @@ PHP_FUNCTION(smbclient_utimes)
 	hide_password(file, file_len);
 	switch (state->err = errno) {
 		case EINVAL: php_error(E_WARNING, "Couldn't set times on %s: the client library is not properly initialized", file); break;
-		case EPERM: php_error(E_WARNING, "Couldn't set times on %s: permission was denied", file); break;
+		case EPERM:
+		case EACCES:
+			php_error(E_WARNING, "Couldn't set times on %s: permission was denied", file); break;
 		default: php_error(E_WARNING, "Couldn't set times on %s: unknown error (%d)", file, errno); break;
 	}
 	RETURN_FALSE;
@@ -1486,7 +1488,9 @@ PHP_FUNCTION(smbclient_listxattr)
 	switch (state->err = errno) {
 		case EINVAL: php_error(E_WARNING, "Couldn't get xattrs: library not initialized"); break;
 		case ENOMEM: php_error(E_WARNING, "Couldn't get xattrs: out of memory"); break;
-		case EPERM: php_error(E_WARNING, "Couldn't get xattrs: permission denied"); break;
+		case EPERM:
+		case EACCES:
+			php_error(E_WARNING, "Couldn't get xattrs: permission denied"); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattrs: file system does not support extended attributes"); break;
 		default: php_error(E_WARNING, "Couldn't get xattrs: unknown error (%d)", errno); break;
 	}
@@ -1566,7 +1570,9 @@ fail:
 	switch (state->err = errno) {
 		case EINVAL: php_error(E_WARNING, "Couldn't get xattr for %s: library not initialized or incorrect parameter", url); break;
 		case ENOMEM: php_error(E_WARNING, "Couldn't get xattr for %s: out of memory", url); break;
-		case EPERM: php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
+		case EPERM:
+		case EACCES:
+			php_error(E_WARNING, "Couldn't get xattr for %s: permission denied", url); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't get xattr for %s: file system does not support extended attributes", url); break;
 		default:
 			if (xattr_size == MAXIMUM_BUFFER_SIZE) {
@@ -1605,7 +1611,9 @@ PHP_FUNCTION(smbclient_setxattr)
 		case EEXIST: php_error(E_WARNING, "Couldn't set attribute on %s: attribute already exists", url); break;
 		case ENOATTR: php_error(E_WARNING, "Couldn't set attribute on %s: attribute does not exist", url); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't set attribute on %s: not supported by filesystem", url); break;
-		case EPERM: php_error(E_WARNING, "Couldn't set attribute on %s: permission denied", url); break;
+		case EPERM:
+		case EACCES:
+			php_error(E_WARNING, "Couldn't set attribute on %s: permission denied", url); break;
 		default: php_error(E_WARNING, "Couldn't set attribute on %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
@@ -1635,7 +1643,9 @@ PHP_FUNCTION(smbclient_removexattr)
 		case EINVAL: php_error(E_WARNING, "Couldn't remove attribute on %s: client library not properly initialized", url); break;
 		case ENOMEM: php_error(E_WARNING, "Couldn't remove attribute on %s: out of memory", url); break;
 		case ENOTSUP: php_error(E_WARNING, "Couldn't remove attribute on %s: not supported by filesystem", url); break;
-		case EPERM: php_error(E_WARNING, "Couldn't remove attribute on %s: permission denied", url); break;
+		case EPERM:
+		case EACCES:
+			php_error(E_WARNING, "Couldn't remove attribute on %s: permission denied", url); break;
 		default: php_error(E_WARNING, "Couldn't remove attribute on %s: unknown error (%d)", url, errno); break;
 	}
 	RETURN_FALSE;
