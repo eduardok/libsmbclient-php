@@ -752,12 +752,12 @@ php_stream_smb_metadata(
 			break;
 
 		default:
-			php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Unknown option %d for stream_metadata", option);
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unknown option %d for stream_metadata", option);
 			return 0;
 	}
 	php_smb_pool_drop(state TSRMLS_CC);
 	if (ret == -1) {
-		php_error_docref1(NULL TSRMLS_CC, url, E_WARNING, "Operation failed: %s", strerror(errno));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Operation failed: %s", strerror(errno));
 		return 0;
 	}
 	php_clear_stat_cache(0, NULL, 0 TSRMLS_CC);
