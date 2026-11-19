@@ -13,7 +13,12 @@ if test "$PHP_SMBCLIENT" != "no"; then
   if test "$PHP_LIBSMBCLIENT" != "yes"; then
 
     LIBSMBCLIENT_DIR=$PHP_LIBSMBCLIENT/$PHP_LIBDIR
-    LIBSMBCLIENT_INCDIR=$PHP_LIBSMBCLIENT/include
+    for i in $PHP_LIBSMBCLIENT/include $PHP_LIBSMBCLIENT/include/samba-* ; do
+      if test -r $i/libsmbclient.h; then
+        LIBSMBCLIENT_INCDIR="$i";
+        break;
+      fi
+    done
 
     AC_DEFINE(HAVE_LIBSMBCLIENT, 1, [ ])
     PHP_ADD_INCLUDE($LIBSMBCLIENT_INCDIR)
